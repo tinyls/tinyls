@@ -1,7 +1,7 @@
 services:
   # TODO: use docker secrets to manage the passwords
   proxy:
-    image: traefik:3.3
+    image: traefik:3.4
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
