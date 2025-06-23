@@ -161,6 +161,5 @@ jobs:
           script: |
             export TAG=staging
             cd /opt/tinyls
-            sudo chmod 600 infra/traefik/usersfile
             sudo chmod 600 infra/traefik/acme.json
             ./scripts/deploy.sh
