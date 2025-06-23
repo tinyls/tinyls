@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide will help you set up the TinyLS project for local development and contribute to the project.
+This guide will help you set up the tinyls project for local development and contribute to the project.
 
 ## Prerequisites
 
@@ -24,6 +24,7 @@ cd tinyls
 ### 2. Set Up Environment Variables
 
 1. Copy the example environment files:
+
    ```bash
    cp url-shortener/.env.example url-shortener/.env
    cp frontend/.env.example frontend/.env
@@ -46,6 +47,7 @@ docker compose logs -f
 #### Manual Setup
 
 1. **Start PostgreSQL**
+
    ```bash
    docker run -d \
      --name tinyls-postgres \
@@ -57,6 +59,7 @@ docker compose logs -f
    ```
 
 2. **Start Backend**
+
    ```bash
    cd url-shortener
    ./mvnw spring-boot:run
@@ -111,12 +114,14 @@ git checkout -b feature/your-feature-name
 ### 3. Run Tests
 
 #### Backend Tests
+
 ```bash
 cd url-shortener
 ./mvnw test
 ```
 
 #### Frontend Tests
+
 ```bash
 cd frontend
 npm test
@@ -176,6 +181,7 @@ git push origin feature/your-feature-name
 ### Backend Debugging
 
 1. Enable debug logging in `application.properties`:
+
    ```properties
    logging.level.com.tinyls=DEBUG
    ```
@@ -260,4 +266,4 @@ git push origin feature/your-feature-name
 - [Spring Boot Documentation](https://spring.io/projects/spring-boot)
 - [React Documentation](https://reactjs.org/docs)
 - [Docker Documentation](https://docs.docker.com)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs) 
+- [PostgreSQL Documentation](https://www.postgresql.org/docs)

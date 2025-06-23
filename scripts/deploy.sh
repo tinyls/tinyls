@@ -19,6 +19,7 @@ git fetch origin deployment/staging
 git checkout deployment/staging
 git pull
 
+
 # 1) Create Docker network
 # --------------------------------------------------
 log "Creating Docker network..."

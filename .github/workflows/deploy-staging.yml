@@ -93,6 +93,12 @@ jobs:
             --query 'Parameters[].{Name:Name,Value:Value}' \
             --output json > ssm.json
 
+          TRAEFIK_CREDS=$(aws ssm get-parameter \
+            --name "/dev/TRAEFIK_CREDENTIALS" \
+            --with-decryption \
+            --output text \
+            --query Parameter.Value)
+
           # Convert to KEY=VALUE lines
           # Convert JSON to KEY=VALUE lines
           jq -r '.[] | (.Name | sub("^/dev/"; "")) as $k | "\($k)=\(.Value)"' ssm.json \
@@ -106,6 +112,7 @@ jobs:
           echo "TAG=${{ env.TAG }}" >> .env.staging
           echo "DOCKER_IMAGE_BACKEND=${{ env.DOCKER_IMAGE_BACKEND }}" >> .env.staging
           echo "DOCKER_IMAGE_FRONTEND=${{ env.DOCKER_IMAGE_FRONTEND }}" >> .env.staging
+          printf '%s\n' "${TRAEFIK_CREDS}" > usersfile
 
       - name: Ensure remote .env.staging is absent
         uses: appleboy/ssh-action@v1.2.2
@@ -135,7 +142,16 @@ jobs:
           source: ".env"
           target: "/opt/tinyls/."
 
-      - name: Deploy to staging server (EC2)
+      - name: Copy .env to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          source: "usersfile"
+          target: "infra/traefik/."
+
+      - name: Deploy to staging server
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
@@ -145,4 +161,5 @@ jobs:
           script: |
             export TAG=staging
             cd /opt/tinyls
+            sudo chmod 600 infra/traefik/acme.json
             ./scripts/deploy.sh

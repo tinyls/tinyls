@@ -15,10 +15,11 @@ We currently support the following versions with security updates:
 
 ## Reporting a Vulnerability
 
-We take the security of TinyLS seriously. If you believe you have found a security vulnerability, please follow these steps:
+We take the security of tinyls seriously. If you believe you have found a security vulnerability, please follow these steps:
 
 1. **Do Not** disclose the vulnerability publicly
 2. Email the security team at security@tinyls.com with:
+
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact
@@ -95,7 +96,7 @@ For security-related issues:
 
 ## Acknowledgments
 
-We thank all security researchers and contributors who help make TinyLS more secure.
+We thank all security researchers and contributors who help make tinyls more secure.
 
 ## Public Discussions
 
