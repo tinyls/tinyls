@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide provides instructions for deploying the TinyLS application to different environments.
+This guide provides instructions for deploying the tinyls application to different environments.
 
 ## Prerequisites
 
@@ -31,6 +31,7 @@ Update the environment variables with production values (see [Environment Variab
 ### 2. SSL Certificates
 
 1. Generate SSL certificates using Let's Encrypt:
+
    ```bash
    certbot certonly --standalone -d api.tinyls.com -d www.tinyls.com
    ```
@@ -67,11 +68,13 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### 2. Kubernetes Deployment
 
 1. Create namespace:
+
    ```bash
    kubectl create namespace tinyls
    ```
 
 2. Apply configurations:
+
    ```bash
    kubectl apply -f k8s/namespace.yaml
    kubectl apply -f k8s/secrets.yaml
@@ -93,6 +96,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 #### PostgreSQL Setup
 
 1. Create database:
+
    ```sql
    CREATE DATABASE tinyls;
    CREATE USER tinyls WITH ENCRYPTED PASSWORD 'your_password';
@@ -108,6 +112,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### 2. Reverse Proxy (Traefik)
 
 1. Configure Traefik:
+
    ```yaml
    # traefik/traefik.yml
    entryPoints:
@@ -115,12 +120,12 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
        address: ":80"
      websecure:
        address: ":443"
-   
+
    providers:
      docker:
        endpoint: "unix:///var/run/docker.sock"
        exposedByDefault: false
-   
+
    certificatesResolvers:
      letsencrypt:
        acme:
@@ -138,18 +143,20 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### 3. Monitoring Stack
 
 1. Configure Prometheus:
+
    ```yaml
    # prometheus/prometheus.yml
    global:
      scrape_interval: 15s
-   
+
    scrape_configs:
-     - job_name: 'tinyls'
+     - job_name: "tinyls"
        static_configs:
-         - targets: ['backend:8000']
+         - targets: ["backend:8000"]
    ```
 
 2. Configure Grafana:
+
    - Import dashboards
    - Configure data sources
    - Set up alerts
@@ -193,6 +200,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### Horizontal Scaling
 
 1. Scale backend services:
+
    ```bash
    docker compose up -d --scale backend=3
    ```
@@ -205,6 +213,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### Database Scaling
 
 1. Set up replication:
+
    ```bash
    # Primary
    docker run -d --name postgres-primary \
@@ -233,6 +242,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### Database Backup
 
 1. Automated backup:
+
    ```bash
    # Backup script
    #!/bin/bash
@@ -248,6 +258,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### Application Backup
 
 1. Backup configuration:
+
    ```bash
    tar -czf config_backup.tar.gz .env* traefik/ prometheus/ grafana/
    ```
@@ -262,6 +273,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### Health Checks
 
 1. Configure health endpoints:
+
    ```yaml
    # docker-compose.yml
    services:
@@ -287,6 +299,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### Regular Maintenance
 
 1. Update dependencies:
+
    ```bash
    # Backend
    cd url-shortener
@@ -316,11 +329,13 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### Common Issues
 
 1. Database connection issues:
+
    - Check PostgreSQL logs
    - Verify connection settings
    - Check network connectivity
 
 2. SSL certificate issues:
+
    - Verify certificate validity
    - Check certificate paths
    - Renew certificates if needed
@@ -333,6 +348,7 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ### Recovery Procedures
 
 1. Service recovery:
+
    ```bash
    # Restart services
    docker compose restart
@@ -350,11 +366,13 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ## Security Considerations
 
 1. Network security:
+
    - Use internal Docker network
    - Configure firewall rules
    - Enable HTTPS only
 
 2. Application security:
+
    - Regular security updates
    - Input validation
    - Rate limiting
@@ -371,4 +389,4 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 - [Traefik Documentation](https://doc.traefik.io/traefik/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Prometheus Documentation](https://prometheus.io/docs/)
-- [Grafana Documentation](https://grafana.com/docs/) 
+- [Grafana Documentation](https://grafana.com/docs/)

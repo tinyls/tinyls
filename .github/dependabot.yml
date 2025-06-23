@@ -9,13 +9,6 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
-  # Python uv
-  - package-ecosystem: uv
-    directory: /backend
-    schedule:
-      interval: daily
-    commit-message:
-      prefix: ⬆
   # npm
   - package-ecosystem: "npm"
     directory: "/frontend"

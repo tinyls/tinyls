@@ -1,6 +1,6 @@
-# TinyLS Frontend
+# tinyls Frontend
 
-The frontend application for TinyLS, built with React, TanStack Router, and TanStack Query.
+The frontend application for tinyls, built with React, TanStack Router, and TanStack Query.
 
 ## Features
 
@@ -35,6 +35,7 @@ yarn install
 ### 2. Environment Variables
 
 Create a `.env` file:
+
 ```env
 VITE_API_URL=http://localhost:8000
 NODE_ENV=development
@@ -105,17 +106,17 @@ frontend/
 The application uses TanStack Router for routing. Routes are defined in `src/routes/`:
 
 ```typescript
-import { createRoute } from '@tanstack/react-router'
+import { createRoute } from "@tanstack/react-router";
 
 export const rootRoute = createRoute({
   getParentRoute: () => null,
-  path: '/',
-})
+  path: "/",
+});
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: 'dashboard',
-})
+  path: "dashboard",
+});
 ```
 
 ## Data Fetching
@@ -123,14 +124,14 @@ export const dashboardRoute = createRoute({
 The application uses TanStack Query for data fetching:
 
 ```typescript
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 export function useUrls() {
   return useQuery({
-    queryKey: ['urls'],
+    queryKey: ["urls"],
     queryFn: () => api.urls.list(),
-  })
+  });
 }
 ```
 
@@ -139,16 +140,16 @@ export function useUrls() {
 API calls are made using the generated API client from hey-api:
 
 ```typescript
-import { api } from '@/lib/api'
+import { api } from "@/lib/api";
 
 // Create URL
 const response = await api.urls.create({
-  originalUrl: 'https://example.com',
-  alias: 'example'
-})
+  originalUrl: "https://example.com",
+  alias: "example",
+});
 
 // Get URLs
-const urls = await api.urls.list()
+const urls = await api.urls.list();
 ```
 
 ## Styling
@@ -256,16 +257,16 @@ function ErrorFallback({ error }) {
 ### API Error Handling
 
 ```typescript
-import { useQuery } from '@tanstack/react-query'
+import { useQuery } from "@tanstack/react-query";
 
 const { data, error } = useQuery({
-  queryKey: ['urls'],
+  queryKey: ["urls"],
   queryFn: () => api.urls.list(),
   retry: 3,
   onError: (error) => {
     // Handle error
-  }
-})
+  },
+});
 ```
 
 ## Monitoring
