@@ -59,7 +59,7 @@
     "@testing-library/react": "^16.2.0",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
-    "@vitejs/plugin-react-swc": "^3.9.0",
+    "@vitejs/plugin-react-swc": "^3.10.2",
     "dotenv": "^16.5.0",
     "jsdom": "^26.0.0",
     "orval": "^7.9.0",
