@@ -19,9 +19,6 @@ git fetch origin deployment/staging
 git checkout deployment/staging
 git pull
 
-chmod 600 infra/traefik/usersfile
-chmod 600 infra/traefik/acme.json
-
 
 # 1) Create Docker network
 # --------------------------------------------------
