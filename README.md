@@ -1,4 +1,4 @@
-[![Staging Deploy](https://github.com/imounish/tinyls/actions/workflows/deploy-staging.yml/badge.svg?branch=deployment%2Fstaging)](https://github.com/imounish/tinyls/actions/workflows/deploy-staging.yml)
+[![CI / CD - Staging](https://github.com/tinyls/tinyls/actions/workflows/deploy-staging.yml/badge.svg?branch=deployment%2Fstaging)](https://github.com/tinyls/tinyls/actions/workflows/deploy-staging.yml)
 
 # Tiny Links - URL Shortener Service
 
