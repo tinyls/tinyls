@@ -37,7 +37,7 @@ The project consists of several components:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/imounish/tinyls.git
+   git clone https://github.com/tinyls/tinyls.git
    cd tinyls
    ```
 
