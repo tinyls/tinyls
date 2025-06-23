@@ -1,0 +1,57 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+api:
+  dashboard: true
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    forwardedHeaders:
+      insecure: true 
+  metrics:
+    address: ":8082"
+
+providers:
+  docker:
+    constraints: Label(`traefik.constraint-label`, `traefik-public`)
+    exposedByDefault: false
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# Let's Encrypt configuration with DNS challenge
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: mounish@tinyls.com
+      storage: /certificates/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+
+log:
+  level: INFO
+  filePath: "/var/log/traefik/access.log"
+  format: json
+
+accessLog:
+  filePath: "/var/log/traefik/audit.log"
+  format: json 

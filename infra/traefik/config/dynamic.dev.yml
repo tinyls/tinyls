@@ -1,0 +1,241 @@
+tls:
+  certificates:
+    - certFile: /etc/certs/staging.tinyls.com.crt
+      keyFile: /etc/certs/staging.tinyls.com-key.pem
+      stores:
+        - default
+
+http:
+  middlewares:
+    dashboard-auth:
+      basicAuth:
+        realm: "Traefik Dashboard"
+        removeHeader: true
+        usersFile: "/etc/traefik/usersfile"
+
+    # Limit each client IP to 100 requests/second, with a burst of 50
+    global-rate-limit:
+      rateLimit:
+        average: 100 # sustained rate per second
+        burst: 50 # maximum spike
+
+    # Redirect plain HTTP → HTTPS
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    # Rewrite single-segment shortcodes into backend API path
+    rewrite-shortcode:
+      replacePathRegex:
+        # regex: "^/([a-zA-Z0-9]{4,})$"
+        regex: "^/([A-Za-z0-9_-]+)$"
+        replacement: "/api/urls/r/$1"
+
+  # TODO: do not expose prometheus to outside network
+  routers:
+    # Traefik Dashboard configuration
+    dashboard:
+      rule: Host(`traefik.staging.tinyls.com`)
+      service: api@internal
+      entryPoints:
+        - websecure
+      middlewares:
+        - dashboard-auth
+      tls: {}
+
+    # Prometheus UI configuration
+    prometheus:
+      rule: Host(`prometheus.staging.tinyls.com`)
+      service: prometheus
+      entryPoints:
+        - websecure
+      tls: {}
+
+    # Grafana UI configuration
+    grafana:
+      rule: Host(`grafana.staging.tinyls.com`)
+      service: grafana
+      entryPoints:
+        - websecure
+      tls: {}
+
+    # Adminer HTTP -> HTTP configuration
+    tinyls-staging-adminer-http:
+      rule: Host(`adminer.staging.tinyls.com`)
+      service: tinyls-staging-adminer
+      entryPoints:
+        - web
+      middlewares:
+        - https-redirect
+        - global-rate-limit
+
+    tinyls-staging-adminer-https:
+      rule: Host(`adminer.staging.tinyls.com`)
+      service: tinyls-staging-adminer
+      entryPoints:
+        - websecure
+      middlewares:
+        - global-rate-limit
+      tls: {}
+
+    # Backend API (HTTP -> HTTPS) configuration
+    tinyls-staging-backend-http:
+      rule: Host(`api.staging.tinyls.com`) && (
+          PathPrefix(`/api`) ||
+          PathPrefix(`/api-docs`) ||
+          PathPrefix(`/swagger-ui`)
+        )
+      service: tinyls-staging-backend
+      entryPoints:
+        - web
+      middlewares:
+        - https-redirect
+        - global-rate-limit
+      priority: 30
+
+    tinyls-staging-backend-https:
+      rule: Host(`api.staging.tinyls.com`) &&(
+          PathPrefix(`/api`) ||
+          PathPrefix(`/api-docs`) ||
+          PathPrefix(`/swagger-ui`)
+        )
+      service: tinyls-staging-backend
+      entryPoints:
+        - websecure
+      middlewares:
+        - global-rate-limit
+      tls: {}
+      priority: 30
+
+    # Backend Auth router for OAuth
+    tinyls-staging-backend-auth-http:
+      rule: Host(`api.staging.tinyls.com`) &&
+            (
+             PathPrefix(`/oauth2/authorize`) ||
+             PathPrefix(`/login/oauth2/code`)
+            )
+      service: tinyls-staging-backend
+      entryPoints:
+        - web
+      middlewares:
+        - global-rate-limit
+        - https-redirect
+      priority: 25
+
+    tinyls-staging-backend-auth-https:
+      rule: Host(`api.staging.tinyls.com`) &&
+            (
+             PathPrefix(`/oauth2/authorize`) ||
+             PathPrefix(`/login/oauth2/code`)
+            )
+      service: tinyls-staging-backend
+      entryPoints:
+        - websecure
+      middlewares:
+        - global-rate-limit
+      tls: {}
+      priority: 25
+
+    tinyls-staging-callback-http:
+      rule: Host(`staging.tinyls.com`) && (PathPrefix(`/oauth2-callback`) || PathPrefix(`/login`) || PathPrefix(`/register`))
+      service: tinyls-staging-frontend
+      entryPoints:
+        - web
+      middlewares: 
+        - https-redirect
+        - global-rate-limit
+      priority: 25
+    
+    tinyls-staging-callback-https:
+      rule: Host(`staging.tinyls.com`) && (PathPrefix(`/oauth2-callback`) || PathPrefix(`/login`) || PathPrefix(`/register`))
+      service: tinyls-staging-frontend
+      entryPoints:
+        - websecure
+      middlewares: 
+        - global-rate-limit
+      tls: {}
+      priority: 25
+
+    # Shortcode redirect (HTTP -> HTTPS) configuration
+    tinyls-staging-shortcode-http:
+      # rule: Host(`staging.tinyls.com`) && PathRegexp(`^/(?!login$|register$|oauth2-callback$)([A-Za-z0-9_-]+)$`)
+      rule: Host(`staging.tinyls.com`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)
+      service: tinyls-staging-backend
+      entryPoints:
+        - web
+      middlewares:
+        - https-redirect
+        - global-rate-limit
+      priority: 20
+
+    tinyls-staging-shortcode-https:
+      # rule: Host(`staging.tinyls.com`) && PathRegexp(`^/(?!login$|register$|oauth2-callback$)([A-Za-z0-9_-]+)$`)
+      rule: Host(`staging.tinyls.com`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)
+      service: tinyls-staging-backend
+      entryPoints:
+        - websecure
+      middlewares:
+        - rewrite-shortcode # turn /abc → /api/r/abc
+        - global-rate-limit
+      tls: {}
+      priority: 20
+
+    # Frontend SPA (HTTP -> HTTPS) configuration
+    tinyls-staging-frontend-http:
+      rule: Host(`staging.tinyls.com`)
+      service: tinyls-staging-frontend
+      entryPoints:
+        - web
+      middlewares:
+        - https-redirect
+        - global-rate-limit
+      priority: 10
+
+    # Frontend HTTPS configuration
+    tinyls-staging-frontend-https:
+      rule: Host(`staging.tinyls.com`)
+      service: tinyls-staging-frontend
+      entryPoints:
+        - websecure
+      middlewares:
+        - global-rate-limit
+      tls: {}
+      priority: 10
+
+  services:
+    # metrics:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://proxy:8082"
+
+    prometheus:
+      loadBalancer:
+        servers:
+          - url: "http://prometheus:9090"
+
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
+
+    tinyls-staging-adminer:
+      loadBalancer:
+        servers:
+          - url: "http://adminer:8080"
+
+    tinyls-staging-backend:
+      loadBalancer:
+        servers:
+          - url: "http://backend:8000"
+
+    tinyls-staging-frontend:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"
+
+    shortcode-redirect-service:
+      loadBalancer:
+        servers:
+          - url: "http://backend:8000/api/urls/r/"
+        passHostHeader: true

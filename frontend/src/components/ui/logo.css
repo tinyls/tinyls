@@ -1,0 +1,27 @@
+.logo-container {
+    width: 100%;
+    max-width: 192px;
+    height: auto;
+}
+
+svg .svg-link-1 {
+    stroke-dashoffset: 248.3408660888672px;
+    stroke-dasharray: 248.3408660888672px;
+    -webkit-transition: stroke-dashoffset 0.8s cubic-bezier(0.47, 0, 0.745, 0.715) 0s;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.47, 0, 0.745, 0.715) 0s;
+}
+
+svg.active .svg-link-1 {
+    stroke-dashoffset: 0;
+}
+
+svg .svg-link-2 {
+    stroke-dashoffset: 248.28524780273438px;
+    stroke-dasharray: 248.28524780273438px;
+    -webkit-transition: stroke-dashoffset 0.8s cubic-bezier(0.47, 0, 0.745, 0.715) 0s;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.47, 0, 0.745, 0.715) 0s;
+}
+
+svg.active .svg-link-2 {
+    stroke-dashoffset: 0;
+}

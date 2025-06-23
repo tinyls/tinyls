@@ -1,0 +1,95 @@
+# Backend changes
+backend:
+  - url-shortener/**/*
+  - '!url-shortener/**/*.md'
+  - '!url-shortener/**/*.txt'
+
+# Frontend changes
+frontend:
+  - frontend/**/*
+  - '!frontend/**/*.md'
+  - '!frontend/**/*.txt'
+
+# Documentation changes
+documentation:
+  - '**/*.md'
+  - '**/*.txt'
+  - docs/**/*
+
+# Infrastructure changes
+infrastructure:
+  - docker-compose.yml
+  - Dockerfile*
+  - .github/**/*
+  - '!**/*.md'
+  - '!**/*.txt'
+
+# Dependencies
+dependencies:
+  - '**/pom.xml'
+  - '**/package.json'
+  - '**/package-lock.json'
+  - '**/yarn.lock'
+
+# Tests
+tests:
+  - '**/test/**'
+  - '**/tests/**'
+  - '**/*.test.*'
+  - '**/*.spec.*'
+
+# Security
+security:
+  - '**/security/**'
+  - '**/auth/**'
+  - '**/cors/**'
+  - '**/ssl/**'
+
+# Performance
+performance:
+  - '**/performance/**'
+  - '**/benchmark/**'
+  - '**/metrics/**'
+
+# Breaking changes
+breaking:
+  - '**/BREAKING_CHANGES.md'
+  - '**/CHANGELOG.md'
+
+# Bug fixes
+bug:
+  - '**/bug/**'
+  - '**/fix/**'
+
+# Features
+feature:
+  - '**/feature/**'
+  - '**/enhancement/**'
+
+# Refactoring
+refactor:
+  - '**/refactor/**'
+  - '**/cleanup/**'
+
+# Upgrades
+upgrade:
+  - '**/upgrade/**'
+  - '**/update/**'
+
+# Language specific
+java:
+  - '**/*.java'
+  - '**/*.kt'
+  - '**/*.groovy'
+
+javascript:
+  - '**/*.js'
+  - '**/*.jsx'
+  - '**/*.ts'
+  - '**/*.tsx'
+
+# Internal
+internal:
+  - '**/internal/**'
+  - '**/private/**'
+  - '**/internal-api/**'

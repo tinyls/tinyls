@@ -1,0 +1,15 @@
+.vscode
+.idea
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/_frontend
+/certs
+.env.production
+.env.staging
+*/aws_creds/*
+
+.DS_Store
+infra/traefik/usersfile

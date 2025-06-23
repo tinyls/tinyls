@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Help
+    url: https://github.com/tinyls/tinyls/discussions
+    about: Please ask and answer questions here.
+  - name: Security Issues
+    url: https://github.com/tinyls/tinyls/security/policy
+    about: Please report security issues here.
+  - name: Feature Requests
+    url: https://github.com/tinyls/tinyls/discussions/categories/ideas
+    about: Please suggest new features here.

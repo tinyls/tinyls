@@ -1,0 +1,112 @@
+services:
+  proxy:
+    image: traefik:3.3
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/traefik/config/static.staging.yml:/etc/traefik/traefik.yml:ro
+      - ./infra/traefik/config/dynamic.staging.yml:/etc/traefik/dynamic/dynamic.yml:ro
+      - ./infra/traefik/usersfile:/etc/traefik/usersfile:ro
+      - ./infra/traefik/acme.json:/certificates/acme.json
+      - proxy-public-certificates:/certificates
+      - ./infra/traefik/logs:/var/log/traefik
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - .env.staging
+    # environment:
+    #   - CF_API_EMAIL=${CF_API_EMAIL}
+    #   - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    networks:
+      - proxy-public
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    volumes:
+      - ./infra/prometheus/staging.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    networks:
+      - proxy-public
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: always
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning/datasources/prometheus.staging.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - proxy-public
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
+
+  db:
+    env_file:
+      - .env.staging
+
+  adminer:
+    restart: always
+    networks:
+      - proxy-public
+      - default
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
+
+  frontend:
+    restart: always
+    env_file:
+      - .env.staging
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=https://api.${DOMAIN}
+        - NODE_ENV=production
+    environment:
+      - VITE_API_URL=https://api.${DOMAIN}
+    networks:
+      - proxy-public
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
+
+  backend:
+    restart: always
+    build:
+      context: ./url-shortener
+      target: release
+    env_file:
+      - .env.staging
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    networks:
+      - proxy-public
+      - default
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
+
+volumes:
+  postgres-data:
+  proxy-public-certificates:
+  grafana-data:
+  prometheus-data:
+
+networks:
+  proxy-public:
+    external: true
