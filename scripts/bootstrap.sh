@@ -100,7 +100,7 @@ cd $APP_DIR
 
 if [ ! -d "$APP_DIR/.git" ]; then
   log "Cloning repository..."
-  git clone https://github.com/imounish/tinyls.git .
+  git clone https://github.com/tinyls/tinyls.git .
 else
   log "Repository already exists, pulling latest changes..."
   git pull origin

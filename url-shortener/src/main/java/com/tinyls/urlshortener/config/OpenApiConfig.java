@@ -41,7 +41,7 @@ public class OpenApiConfig {
                                                                 "redirection, user management, and analytics.")
                                                 .version("1.0.0")
                                                 .contact(new Contact()
-                                                                .name("TinyLS Team")
+                                                                .name("tinyls Team")
                                                                 .email("support@tinyls.com")
                                                                 .url("https://tinyls.com"))
                                                 .license(new License()

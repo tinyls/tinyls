@@ -1,8 +1,8 @@
 [![CI / CD - Staging](https://github.com/tinyls/tinyls/actions/workflows/deploy-staging.yml/badge.svg?branch=deployment%2Fstaging)](https://github.com/tinyls/tinyls/actions/workflows/deploy-staging.yml)
 
-# Tiny Links - URL Shortener Service
+# tinyls - A lightweight URL shortener app
 
-A modern, secure, and scalable URL shortening service built with Spring Boot, React, and PostgreSQL.
+A modern, secure, and scalable URL shortening app built with Spring Boot, React, and PostgreSQL.
 
 ## 🌟 Features
 
@@ -37,7 +37,7 @@ The project consists of several components:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/imounish/tinyls.git
+   git clone https://github.com/tinyls/tinyls.git
    cd tinyls
    ```
 

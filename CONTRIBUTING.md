@@ -1,6 +1,6 @@
-# Contributing to TinyLS
+# Contributing to tinyls
 
-Thank you for your interest in contributing to TinyLS! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to tinyls! This document provides guidelines and instructions for contributing to the project.
 
 ## Code of Conduct
 
@@ -46,18 +46,21 @@ By participating in this project, you agree to abide by our Code of Conduct. Ple
 ### Local Development
 
 1. Fork and clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/tinyls.git
 cd tinyls
 ```
 
 2. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
 3. Start the development environment:
+
 ```bash
 docker compose watch
 ```
@@ -125,6 +128,7 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org/) specific
 ```
 
 Types:
+
 - feat: New feature
 - fix: Bug fix
 - docs: Documentation changes
@@ -160,4 +164,4 @@ Types:
 
 ## License
 
-By contributing to TinyLS, you agree that your contributions will be licensed under the project's [MIT License](LICENSE). 
+By contributing to tinyls, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).
