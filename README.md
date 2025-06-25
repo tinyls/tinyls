@@ -11,6 +11,7 @@ A modern, secure, and scalable URL shortening app built with Spring Boot, React,
 - **Analytics**: Track clicks and usage patterns
 - **API**: RESTful API for programmatic access
 - **Monitoring**: Prometheus metrics and Grafana dashboards
+- **Caching**: Redis-based cache for faster redirects
 - **Security**: JWT-based authentication, HTTPS, and secure headers
 
 ## 🏗️ Architecture

@@ -58,7 +58,7 @@ public class Base62 {
             number /= BASE;
         }
 
-        String encoded = result.reverse().toString();
+        String encoded = result.toString();
         if (encoded.length() > MAX_LENGTH) {
             throw new IllegalArgumentException("Encoded value exceeds maximum length of " + MAX_LENGTH);
         }
