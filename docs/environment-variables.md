@@ -56,6 +56,9 @@ This document describes all the environment variables used in the tinyls project
 
 - `SPRING_CACHE_TYPE`: Cache provider type
 - `SPRING_CACHE_CAFFEINE_SPEC`: Caffeine cache configuration
+- `REDIS_HOST`: Redis server host
+- `REDIS_PORT`: Redis server port
+- `REDIS_PASSWORD`: Redis password (optional)
 
 ## Frontend
 
@@ -120,8 +123,10 @@ LOGGING_LEVEL_COM_TINYLS=DEBUG
 LOGGING_PATTERN=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
 
 # Cache Configuration
-SPRING_CACHE_TYPE=caffeine
-SPRING_CACHE_CAFFEINE_SPEC=maximumSize=500,expireAfterWrite=600s
+SPRING_CACHE_TYPE=redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=
 ```
 
 ### Frontend (.env)

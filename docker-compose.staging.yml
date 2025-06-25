@@ -15,9 +15,6 @@ services:
       - "443:443"
     env_file:
       - .env.staging
-    # environment:
-    #   - CF_API_EMAIL=${CF_API_EMAIL}
-    #   - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     networks:
       - proxy-public
     labels:
@@ -68,6 +65,11 @@ services:
       - "traefik.constraint-label=traefik-public"
       - "traefik.enable=true"
 
+  redis:
+    restart: always
+    env_file:
+      - .env.staging
+
   frontend:
     restart: always
     env_file:
@@ -102,7 +104,6 @@ services:
       - "traefik.enable=true"
 
 volumes:
-  postgres-data:
   proxy-public-certificates:
   grafana-data:
   prometheus-data:

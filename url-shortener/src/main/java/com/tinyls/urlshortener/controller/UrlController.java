@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-// TODO: request to a non existing endpoint is causing 500 internal server error. it should be 404 url not found
 /**
  * Controller handling URL shortening operations.
  * 

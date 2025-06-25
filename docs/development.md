@@ -6,7 +6,7 @@ This guide will help you set up the tinyls project for local development and con
 
 - Docker and Docker Compose
 - Java 21
-- Node.js 18+
+- Node.js 22+
 - Maven
 - Git
 - IDE (IntelliJ IDEA, VS Code, or Eclipse)
