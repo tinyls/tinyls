@@ -31,6 +31,20 @@ jobs:
             image=moby/buildkit:v0.12.0
           buildkitd-flags: --debug
 
+      - name: Configure AWS credentials via OIDC for build
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_STAGING }}
+          aws-region: us-east-1
+      
+      - name: Fetch frontend VITE social URLs
+        run: |
+          for key in PERSONAL GITHUB LINKEDIN INSTAGRAM; do
+            param="/dev/VITE_SOCIAL_${key}_URL"
+            val=$(aws ssm get-parameter --name "$param" --with-decryption --query Parameter.Value --output text)
+            echo "VITE_SOCIAL_${key}_URL=$val" >> "$GITHUB_ENV"
+          done
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -62,6 +76,10 @@ jobs:
             ${{ env.DOCKER_IMAGE_FRONTEND }}:${{ env.TAG }}
           build-args: |
             VITE_API_URL=https://api.${{ secrets.STAGING_DOMAIN }}
+            VITE_SOCIAL_PERSONAL_URL=${{ env.VITE_SOCIAL_PERSONAL_URL }}
+            VITE_SOCIAL_GITHUB_URL=${{ env.VITE_SOCIAL_GITHUB_URL }}
+            VITE_SOCIAL_LINKEDIN_URL=${{ env.VITE_SOCIAL_LINKEDIN_URL }}
+            VITE_SOCIAL_INSTAGRAM_URL=${{ env.VITE_SOCIAL_INSTAGRAM_URL }}
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE_FRONTEND }}-cache:${{ env.TAG }}
           cache-to: type=registry,ref=${{ env.DOCKER_IMAGE_FRONTEND }}-cache:${{ env.TAG }},mode=max
           platforms: linux/amd64
