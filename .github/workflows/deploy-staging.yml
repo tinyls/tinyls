@@ -130,7 +130,7 @@ jobs:
           echo "TAG=${{ env.TAG }}" >> .env.staging
           echo "DOCKER_IMAGE_BACKEND=${{ env.DOCKER_IMAGE_BACKEND }}" >> .env.staging
           echo "DOCKER_IMAGE_FRONTEND=${{ env.DOCKER_IMAGE_FRONTEND }}" >> .env.staging
-          printf '%s\n' "${TRAEFIK_CREDS}" > usersfile
+          echo $TRAEFIK_CREDS >> usersfile.txt
 
       - name: Ensure remote .env.staging is absent
         uses: appleboy/ssh-action@v1.2.2
@@ -166,7 +166,7 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          source: "usersfile"
+          source: "usersfile.txt"
           target: "infra/traefik/."
 
       - name: Deploy to staging server
@@ -180,4 +180,5 @@ jobs:
             export TAG=staging
             cd /opt/tinyls
             sudo chmod 600 infra/traefik/acme.json
+            sudo chmod 600 infra/traefik/usersfile.txt
             ./scripts/deploy.sh
