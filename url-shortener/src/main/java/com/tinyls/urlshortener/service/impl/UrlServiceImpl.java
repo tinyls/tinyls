@@ -14,8 +14,6 @@ import com.tinyls.urlshortener.service.UrlService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -162,7 +160,6 @@ public class UrlServiceImpl implements UrlService {
     public UrlDTO incrementClicks(String shortCode, UUID userId) {
         log.debug("Incrementing clicks for URL with short code: {} for user: {}", shortCode, userId);
 
-        // Try to get from cache first
         String cacheKey = CacheConstants.urlByShortCodeKey(shortCode);
         Optional<UrlDTO> cachedUrl = cacheService.get(cacheKey, UrlDTO.class);
 
@@ -170,32 +167,41 @@ public class UrlServiceImpl implements UrlService {
             log.debug("Cache hit for short code: {}", shortCode);
             UrlDTO urlDTO = cachedUrl.get();
 
-            // Check ownership for cached URL
             if (urlDTO.getUserId() != null && !urlDTO.getUserId().equals(userId)) {
                 throw new UnauthorizedException("You don't have permission to access this URL");
             }
 
-            // Increment clicks in cache
-            String clicksKey = CacheConstants.clicksKey(shortCode);
-            cacheService.increment(clicksKey);
-
-            // Update the cached URL with incremented clicks
+            urlRepository.incrementClicks(shortCode);
+            cacheService.increment(CacheConstants.clicksKey(shortCode));
             urlDTO.setClicks(urlDTO.getClicks() + 1);
             cacheService.set(cacheKey, urlDTO, CacheConstants.URL_TTL);
+            // Also update the cache for URL by ID
+            String urlByIdKey = CacheConstants.urlKey(urlDTO.getId());
+            cacheService.set(urlByIdKey, urlDTO, CacheConstants.URL_TTL);
+
+            if (urlDTO.getUserId() != null) {
+                String userUrlsKey = CacheConstants.userUrlsKey(urlDTO.getUserId());
+                try {
+                    cacheService.delete(userUrlsKey);
+                    log.info("Invalidated user URLs cache for user: {}", urlDTO.getUserId());
+                } catch (Exception e) {
+                    log.error("Failed to invalidate user URLs cache for user: {}", urlDTO.getUserId(), e);
+
+                }
+            }
 
             return urlDTO;
         }
 
-        // Cache miss - get from database
         log.debug("Cache miss for short code: {}", shortCode);
         Url url = getUrlByShortCodeAndCheckOwnership(shortCode, userId);
         url.setClicks(url.getClicks() + 1);
         Url updatedUrl = urlRepository.save(url);
         UrlDTO updatedUrlDTO = urlMapper.toDTO(updatedUrl);
-
-        // Cache the updated URL
         cacheService.set(cacheKey, updatedUrlDTO, CacheConstants.URL_TTL);
-
+        // Also update the cache for URL by ID
+        String urlByIdKey = CacheConstants.urlKey(updatedUrlDTO.getId());
+        cacheService.set(urlByIdKey, updatedUrlDTO, CacheConstants.URL_TTL);
         return updatedUrlDTO;
     }
 
@@ -203,31 +209,46 @@ public class UrlServiceImpl implements UrlService {
     public String getAndIncrementClicks(String shortCode) {
         log.debug("Getting and incrementing clicks for URL with short code: {}", shortCode);
 
-        // Try to get from cache first
         String cacheKey = CacheConstants.urlByShortCodeKey(shortCode);
         Optional<UrlDTO> cachedUrl = cacheService.get(cacheKey, UrlDTO.class);
 
         if (cachedUrl.isPresent()) {
             log.debug("Cache hit for short code: {}", shortCode);
-            // Increment clicks in cache
-            String clicksKey = CacheConstants.clicksKey(shortCode);
-            cacheService.increment(clicksKey);
-            return cachedUrl.get().getOriginalUrl();
+            urlRepository.incrementClicks(shortCode);
+            cacheService.increment(CacheConstants.clicksKey(shortCode));
+            UrlDTO urlDTO = cachedUrl.get();
+            urlDTO.setClicks(urlDTO.getClicks() + 1);
+            cacheService.set(cacheKey, urlDTO, CacheConstants.URL_TTL);
+            // Also update the cache for URL by ID
+            String urlByIdKey = CacheConstants.urlKey(urlDTO.getId());
+            cacheService.set(urlByIdKey, urlDTO, CacheConstants.URL_TTL);
+            if (urlDTO.getUserId() != null) {
+                String userUrlsKey = CacheConstants.userUrlsKey(urlDTO.getUserId());
+                try {
+                    cacheService.delete(userUrlsKey);
+                    log.info("Invalidated user URLs cache for user: {} (redirect)", urlDTO.getUserId());
+                } catch (Exception e) {
+                    log.error("Failed to invalidate user URLs cache for user: {} (redirect)", urlDTO.getUserId(), e);
+                }
+            }
+            return urlDTO.getOriginalUrl();
         }
 
-        // Cache miss - get from database
         log.debug("Cache miss for short code: {}", shortCode);
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("URL", shortCode));
-
         url.setClicks(url.getClicks() + 1);
-        urlRepository.save(url);
-
-        // Cache the URL for future requests
-        UrlDTO urlDTO = urlMapper.toDTO(url);
+        Url savedUrl = urlRepository.save(url);
+        UrlDTO urlDTO = urlMapper.toDTO(savedUrl);
         cacheService.set(cacheKey, urlDTO, CacheConstants.URL_TTL);
-
-        return url.getOriginalUrl();
+        cacheService.increment(CacheConstants.clicksKey(shortCode));
+        // Also update the cache for URL by ID
+        String urlByIdKey = CacheConstants.urlKey(urlDTO.getId());
+        cacheService.set(urlByIdKey, urlDTO, CacheConstants.URL_TTL);
+        if (savedUrl.getUser() != null) {
+            cacheService.delete(CacheConstants.userUrlsKey(savedUrl.getUser().getId()));
+        }
+        return savedUrl.getOriginalUrl();
     }
 
     @Override

@@ -2,7 +2,10 @@ package com.tinyls.urlshortener.repository;
 
 import com.tinyls.urlshortener.model.Url;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -83,4 +86,14 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
      *         empty otherwise
      */
     Optional<Url> findFirstByOriginalUrlAndUserIsNull(String originalUrl);
+
+    /**
+     * Atomically increment the clicks count for a URL by its short code.
+     *
+     * @param shortCode the unique short code of the URL
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Url u SET u.clicks = u.clicks + 1 WHERE u.shortCode = :shortCode")
+    void incrementClicks(String shortCode);
 }
