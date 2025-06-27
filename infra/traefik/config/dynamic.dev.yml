@@ -1,7 +1,7 @@
 tls:
   certificates:
-    - certFile: /etc/certs/staging.tinyls.com.crt
-      keyFile: /etc/certs/staging.tinyls.com-key.pem
+    - certFile: /etc/certs/traefik.dev.tinyls.com+4.pem
+      keyFile: /etc/certs/traefik.dev.tinyls.com+4-key.pem
       stores:
         - default
 
@@ -28,15 +28,21 @@ http:
     # Rewrite single-segment shortcodes into backend API path
     rewrite-shortcode:
       replacePathRegex:
-        # regex: "^/([a-zA-Z0-9]{4,})$"
         regex: "^/([A-Za-z0-9_-]+)$"
         replacement: "/api/urls/r/$1"
+    
+    shortcode-frontend-fallback:
+      errors:
+        status:
+          - "404"
+        service: tinyls-dev-frontend
+        # serve the SPA entrypoint; your React app will see the original path
+        query: "/"
 
-  # TODO: do not expose prometheus to outside network
   routers:
     # Traefik Dashboard configuration
     dashboard:
-      rule: Host(`traefik.staging.tinyls.com`)
+      rule: Host(`traefik.dev.tinyls.com`)
       service: api@internal
       entryPoints:
         - websecure
@@ -44,35 +50,27 @@ http:
         - dashboard-auth
       tls: {}
 
-    # Prometheus UI configuration
-    prometheus:
-      rule: Host(`prometheus.staging.tinyls.com`)
-      service: prometheus
-      entryPoints:
-        - websecure
-      tls: {}
-
     # Grafana UI configuration
     grafana:
-      rule: Host(`grafana.staging.tinyls.com`)
+      rule: Host(`grafana.dev.tinyls.com`)
       service: grafana
       entryPoints:
         - websecure
       tls: {}
 
     # Adminer HTTP -> HTTP configuration
-    tinyls-staging-adminer-http:
-      rule: Host(`adminer.staging.tinyls.com`)
-      service: tinyls-staging-adminer
+    tinyls-dev-adminer-http:
+      rule: Host(`adminer.dev.tinyls.com`)
+      service: tinyls-dev-adminer
       entryPoints:
         - web
       middlewares:
         - https-redirect
         - global-rate-limit
 
-    tinyls-staging-adminer-https:
-      rule: Host(`adminer.staging.tinyls.com`)
-      service: tinyls-staging-adminer
+    tinyls-dev-adminer-https:
+      rule: Host(`adminer.dev.tinyls.com`)
+      service: tinyls-dev-adminer
       entryPoints:
         - websecure
       middlewares:
@@ -80,13 +78,13 @@ http:
       tls: {}
 
     # Backend API (HTTP -> HTTPS) configuration
-    tinyls-staging-backend-http:
-      rule: Host(`api.staging.tinyls.com`) && (
-          PathPrefix(`/api`) ||
-          PathPrefix(`/api-docs`) ||
-          PathPrefix(`/swagger-ui`)
+    tinyls-dev-backend-http:
+      rule: Host(`api.dev.tinyls.com`) && (
+        PathPrefix(`/api`) ||
+        PathPrefix(`/api-docs`) ||
+        PathPrefix(`/swagger-ui`)
         )
-      service: tinyls-staging-backend
+      service: tinyls-dev-backend
       entryPoints:
         - web
       middlewares:
@@ -94,13 +92,13 @@ http:
         - global-rate-limit
       priority: 30
 
-    tinyls-staging-backend-https:
-      rule: Host(`api.staging.tinyls.com`) &&(
-          PathPrefix(`/api`) ||
-          PathPrefix(`/api-docs`) ||
-          PathPrefix(`/swagger-ui`)
+    tinyls-dev-backend-https:
+      rule: Host(`api.dev.tinyls.com`) &&(
+        PathPrefix(`/api`) ||
+        PathPrefix(`/api-docs`) ||
+        PathPrefix(`/swagger-ui`)
         )
-      service: tinyls-staging-backend
+      service: tinyls-dev-backend
       entryPoints:
         - websecure
       middlewares:
@@ -109,13 +107,13 @@ http:
       priority: 30
 
     # Backend Auth router for OAuth
-    tinyls-staging-backend-auth-http:
-      rule: Host(`api.staging.tinyls.com`) &&
-            (
-             PathPrefix(`/oauth2/authorize`) ||
-             PathPrefix(`/login/oauth2/code`)
-            )
-      service: tinyls-staging-backend
+    tinyls-dev-backend-auth-http:
+      rule: Host(`api.dev.tinyls.com`) &&
+        (
+        PathPrefix(`/oauth2/authorize`) ||
+        PathPrefix(`/login/oauth2/code`)
+        )
+      service: tinyls-dev-backend
       entryPoints:
         - web
       middlewares:
@@ -123,13 +121,13 @@ http:
         - https-redirect
       priority: 25
 
-    tinyls-staging-backend-auth-https:
-      rule: Host(`api.staging.tinyls.com`) &&
-            (
-             PathPrefix(`/oauth2/authorize`) ||
-             PathPrefix(`/login/oauth2/code`)
-            )
-      service: tinyls-staging-backend
+    tinyls-dev-backend-auth-https:
+      rule: Host(`api.dev.tinyls.com`) &&
+        (
+        PathPrefix(`/oauth2/authorize`) ||
+        PathPrefix(`/login/oauth2/code`)
+        )
+      service: tinyls-dev-backend
       entryPoints:
         - websecure
       middlewares:
@@ -137,31 +135,30 @@ http:
       tls: {}
       priority: 25
 
-    tinyls-staging-callback-http:
-      rule: Host(`staging.tinyls.com`) && (PathPrefix(`/oauth2-callback`) || PathPrefix(`/login`) || PathPrefix(`/register`))
-      service: tinyls-staging-frontend
+    tinyls-dev-callback-http:
+      rule: Host(`dev.tinyls.com`) && (PathPrefix(`/oauth2-callback`) || PathPrefix(`/login`) || PathPrefix(`/register`))
+      service: tinyls-dev-frontend
       entryPoints:
         - web
-      middlewares: 
+      middlewares:
         - https-redirect
         - global-rate-limit
       priority: 25
-    
-    tinyls-staging-callback-https:
-      rule: Host(`staging.tinyls.com`) && (PathPrefix(`/oauth2-callback`) || PathPrefix(`/login`) || PathPrefix(`/register`))
-      service: tinyls-staging-frontend
+
+    tinyls-dev-callback-https:
+      rule: Host(`dev.tinyls.com`) && (PathPrefix(`/oauth2-callback`) || PathPrefix(`/login`) || PathPrefix(`/register`))
+      service: tinyls-dev-frontend
       entryPoints:
         - websecure
-      middlewares: 
+      middlewares:
         - global-rate-limit
       tls: {}
       priority: 25
 
     # Shortcode redirect (HTTP -> HTTPS) configuration
-    tinyls-staging-shortcode-http:
-      # rule: Host(`staging.tinyls.com`) && PathRegexp(`^/(?!login$|register$|oauth2-callback$)([A-Za-z0-9_-]+)$`)
-      rule: Host(`staging.tinyls.com`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)
-      service: tinyls-staging-backend
+    tinyls-dev-shortcode-http:
+      rule: Host(`dev.tinyls.com`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)
+      service: tinyls-dev-backend
       entryPoints:
         - web
       middlewares:
@@ -169,22 +166,22 @@ http:
         - global-rate-limit
       priority: 20
 
-    tinyls-staging-shortcode-https:
-      # rule: Host(`staging.tinyls.com`) && PathRegexp(`^/(?!login$|register$|oauth2-callback$)([A-Za-z0-9_-]+)$`)
-      rule: Host(`staging.tinyls.com`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)
-      service: tinyls-staging-backend
+    tinyls-dev-shortcode-https:
+      rule: Host(`dev.tinyls.com`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)
+      service: tinyls-dev-backend
       entryPoints:
         - websecure
       middlewares:
         - rewrite-shortcode # turn /abc → /api/r/abc
         - global-rate-limit
+        - shortcode-frontend-fallback # any 404 -> frontend
       tls: {}
       priority: 20
 
     # Frontend SPA (HTTP -> HTTPS) configuration
-    tinyls-staging-frontend-http:
-      rule: Host(`staging.tinyls.com`)
-      service: tinyls-staging-frontend
+    tinyls-dev-frontend-http:
+      rule: Host(`dev.tinyls.com`)
+      service: tinyls-dev-frontend
       entryPoints:
         - web
       middlewares:
@@ -193,9 +190,9 @@ http:
       priority: 10
 
     # Frontend HTTPS configuration
-    tinyls-staging-frontend-https:
-      rule: Host(`staging.tinyls.com`)
-      service: tinyls-staging-frontend
+    tinyls-dev-frontend-https:
+      rule: Host(`dev.tinyls.com`)
+      service: tinyls-dev-frontend
       entryPoints:
         - websecure
       middlewares:
@@ -204,11 +201,6 @@ http:
       priority: 10
 
   services:
-    # metrics:
-    #   loadBalancer:
-    #     servers:
-    #       - url: "http://proxy:8082"
-
     prometheus:
       loadBalancer:
         servers:
@@ -219,17 +211,17 @@ http:
         servers:
           - url: "http://grafana:3000"
 
-    tinyls-staging-adminer:
+    tinyls-dev-adminer:
       loadBalancer:
         servers:
           - url: "http://adminer:8080"
 
-    tinyls-staging-backend:
+    tinyls-dev-backend:
       loadBalancer:
         servers:
           - url: "http://backend:8000"
 
-    tinyls-staging-frontend:
+    tinyls-dev-frontend:
       loadBalancer:
         servers:
           - url: "http://frontend:80"

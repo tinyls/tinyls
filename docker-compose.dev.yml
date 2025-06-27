@@ -5,11 +5,12 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./infra/traefik/config/static.staging.yml:/etc/traefik/traefik.yml:ro
-      - ./infra/traefik/config/dynamic.staging.yml:/etc/traefik/dynamic/dynamic.yml:ro
+      - ./infra/traefik/config/static.dev.yml:/etc/traefik/traefik.yml:ro
+      - ./infra/traefik/config/dynamic.dev.yml:/etc/traefik/dynamic/dynamic.yml:ro
       # TODO: use secrets to add the hashed password
       - ./infra/traefik/usersfile:/etc/traefik/usersfile:ro
       - ./certs:/etc/certs:ro
+      - ./infra/traefik/logs:/var/log/traefik
       - proxy-public-certificates:/certificates
     ports:
       - "80:80"
@@ -18,8 +19,9 @@ services:
       - .env.dev
     networks:
       - proxy-public
-    # secrets:
-    #   - proxy-usersfile
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
 
   prometheus:
     image: prom/prometheus:latest
@@ -32,6 +34,9 @@ services:
       - "--storage.tsdb.path=/prometheus"
     networks:
       - proxy-public
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
 
   grafana:
     image: grafana/grafana:latest
@@ -45,6 +50,9 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     networks:
       - proxy-public
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
 
   db:
     env_file:
@@ -55,6 +63,9 @@ services:
     networks:
       - proxy-public
       - default
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
 
   frontend:
     restart: always
@@ -67,6 +78,9 @@ services:
         - NODE_ENV=production
     networks:
       - proxy-public
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
 
   backend:
     restart: always
@@ -80,9 +94,11 @@ services:
     networks:
       - proxy-public
       - default
+    labels:
+      - "traefik.constraint-label=traefik-public"
+      - "traefik.enable=true"
 
 volumes:
-  data_proxy_manager:
   proxy-public-certificates:
   grafana-data:
   prometheus-data:

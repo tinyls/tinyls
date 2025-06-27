@@ -8,12 +8,9 @@ api:
 metrics:
   prometheus:
     entryPoint: metrics
-    # addEntryPointsLabels: true
-    # addRoutersLabels: true
-    # addServicesLabels: true
-
-# tracing:
-#   addInternals: true
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
 
 entryPoints:
   web:
@@ -38,7 +35,6 @@ providers:
     directory: /etc/traefik/dynamic
     watch: true
 
-# TODO: add the docker volume mapping to see these
 log:
   level: DEBUG
   filePath: "/var/log/traefik/access.log"

@@ -4,7 +4,7 @@ http:
       basicAuth:
         realm: "Traefik Dashboard"
         removeHeader: true
-        usersFile: "/etc/traefik/usersfile"
+        usersFile: "/etc/traefik/usersfile.txt"
 
     # Limit each client IP to 100 requests/second, with a burst of 50
     global-rate-limit:
@@ -23,6 +23,14 @@ http:
       replacePathRegex:
         regex: "^/([A-Za-z0-9_-]+)$"
         replacement: "/api/urls/r/$1"
+    
+    shortcode-frontend-fallback:
+      errors:
+        status:
+          - "404"
+        service: tinyls-staging-frontend
+        # serve the SPA entrypoint; your React app will see the original path
+        query: "/"
 
   routers:
     # Traefik Dashboard configuration
@@ -33,15 +41,6 @@ http:
         - websecure
       middlewares:
         - dashboard-auth
-      tls:
-        certResolver: letsencrypt
-
-    # Prometheus UI configuration
-    prometheus:
-      rule: Host(`prometheus.staging.tinyls.com`)
-      service: prometheus
-      entryPoints:
-        - websecure
       tls:
         certResolver: letsencrypt
 
@@ -174,6 +173,7 @@ http:
       middlewares:
         - rewrite-shortcode # turn /abc → /api/r/abc
         - global-rate-limit
+        - shortcode-frontend-fallback # any 404 -> frontend
       tls:
         certResolver: letsencrypt
       priority: 20
