@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.tinyls.urlshortener.model.UrlStatus;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -62,4 +63,9 @@ public class UrlDTO {
          * Optional for anonymous URLs.
          */
         private UUID userId;
+
+        /**
+         * The status of the URL (ACTIVE, INACTIVE, etc.).
+         */
+        private UrlStatus status;
 }

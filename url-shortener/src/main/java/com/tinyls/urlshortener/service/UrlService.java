@@ -1,6 +1,8 @@
 package com.tinyls.urlshortener.service;
 
 import com.tinyls.urlshortener.dto.url.UrlDTO;
+import com.tinyls.urlshortener.model.UrlStatus;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -107,4 +109,19 @@ public interface UrlService {
      * @throws jakarta.persistence.EntityNotFoundException if URL not found
      */
     String getAndIncrementClicks(String shortCode);
+
+    /**
+     * Toggle the status of a URL (ACTIVE <-> INACTIVE) by short code.
+     * Only the owner can perform this action.
+     *
+     * @param shortCode URL short code
+     * @param userId    ID of the user toggling the status
+     * @param newStatus The new status to set
+     * @return updated URL data
+     * @throws jakarta.persistence.EntityNotFoundException             if URL not
+     *                                                                 found
+     * @throws com.tinyls.urlshortener.exception.UnauthorizedException if user is
+     *                                                                 not the owner
+     */
+    UrlDTO updateUrlStatusByShortCode(String shortCode, UUID userId, UrlStatus newStatus);
 }

@@ -96,4 +96,25 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
     @Transactional
     @Query("UPDATE Url u SET u.clicks = u.clicks + 1 WHERE u.shortCode = :shortCode")
     void incrementClicks(String shortCode);
+
+    /**
+     * Find a URL by its short code and status.
+     * Used for redirection only if the URL is active.
+     *
+     * @param shortCode the unique short code of the URL
+     * @param status    the status of the URL
+     * @return an Optional containing the URL if found, empty otherwise
+     */
+    Optional<Url> findByShortCodeAndStatus(String shortCode, com.tinyls.urlshortener.model.UrlStatus status);
+
+    /**
+     * Update the status of a URL by its short code.
+     *
+     * @param shortCode the unique short code of the URL
+     * @param status    the new status
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Url u SET u.status = :status WHERE u.shortCode = :shortCode")
+    void updateStatusByShortCode(String shortCode, com.tinyls.urlshortener.model.UrlStatus status);
 }

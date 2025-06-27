@@ -2,6 +2,7 @@ package com.tinyls.urlshortener.controller;
 
 import com.tinyls.urlshortener.dto.url.UrlDTO;
 import com.tinyls.urlshortener.exception.UnauthorizedException;
+import com.tinyls.urlshortener.model.UrlStatus;
 import com.tinyls.urlshortener.security.UserDetailsAdapter;
 import com.tinyls.urlshortener.service.UrlService;
 import jakarta.validation.Valid;
@@ -226,5 +227,40 @@ public class UrlController {
         UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
         log.debug("Retrieving all URLs for user: {}", userId);
         return ResponseEntity.ok(urlService.getUrlsByUser(userId));
+    }
+
+    /**
+     * Updates the status of a URL (ACTIVE <-> INACTIVE) by short code.
+     * Only the owner can perform this action.
+     *
+     * @param shortCode   The short code of the URL
+     * @param statusBody  The new status in the request body
+     * @param userDetails The authenticated user's details
+     * @return The updated URL details
+     */
+    @PatchMapping("/{shortCode}/status")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UrlDTO> updateUrlStatusByShortCode(
+            @PathVariable String shortCode,
+            @RequestBody StatusUpdateRequest statusBody,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
+        UrlStatus newStatus = statusBody.getStatus();
+        return ResponseEntity.ok(urlService.updateUrlStatusByShortCode(shortCode, userId, newStatus));
+    }
+
+    /**
+     * Request body for status update.
+     */
+    public static class StatusUpdateRequest {
+        private UrlStatus status;
+
+        public UrlStatus getStatus() {
+            return status;
+        }
+
+        public void setStatus(UrlStatus status) {
+            this.status = status;
+        }
     }
 }

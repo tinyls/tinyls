@@ -26,6 +26,7 @@ public interface UrlMapper {
      * @return the corresponding URL DTO
      */
     @Mapping(target = "userId", source = "user.id")
+    @Mapping(target = "status", source = "status")
     UrlDTO toDTO(Url url);
 
     /**
@@ -39,6 +40,7 @@ public interface UrlMapper {
     @Mapping(target = "clicks", ignore = true)
     @Mapping(target = "user", ignore = true)
     @Mapping(target = "shortCode", ignore = true)
+    @Mapping(target = "status", source = "status")
     Url toEntity(UrlDTO urlDTO);
 
     /**
@@ -52,5 +54,6 @@ public interface UrlMapper {
     @Mapping(target = "clicks", ignore = true)
     @Mapping(target = "user", ignore = true)
     @Mapping(target = "shortCode", ignore = true)
+    @Mapping(target = "status", source = "status")
     void updateEntityFromDTO(UrlDTO urlDTO, @MappingTarget Url url);
 }

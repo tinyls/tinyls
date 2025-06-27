@@ -12,6 +12,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.tinyls.urlshortener.model.UrlStatus;
+
 // TODO: check if you can remove the idx_url_shortcode
 
 /**
@@ -76,6 +78,15 @@ public class Url {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
+
+    /**
+     * The status of the URL (ACTIVE, INACTIVE, etc.).
+     * Defaults to ACTIVE.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private UrlStatus status = UrlStatus.ACTIVE;
 
     public static class ShortCodeListener {
         /**

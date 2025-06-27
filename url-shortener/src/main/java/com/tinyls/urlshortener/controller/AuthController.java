@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
+// TODO: authentication protection and proper exception handling have to be implemented for returning correct status codes
 /**
  * Controller handling authentication-related operations including user
  * registration,

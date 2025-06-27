@@ -7,6 +7,7 @@ import com.tinyls.urlshortener.exception.UnauthorizedException;
 import com.tinyls.urlshortener.mapper.UrlMapper;
 import com.tinyls.urlshortener.model.Url;
 import com.tinyls.urlshortener.model.User;
+import com.tinyls.urlshortener.model.UrlStatus;
 import com.tinyls.urlshortener.repository.UrlRepository;
 import com.tinyls.urlshortener.repository.UserRepository;
 import com.tinyls.urlshortener.service.CacheService;
@@ -214,9 +215,12 @@ public class UrlServiceImpl implements UrlService {
 
         if (cachedUrl.isPresent()) {
             log.debug("Cache hit for short code: {}", shortCode);
+            UrlDTO urlDTO = cachedUrl.get();
+            if (urlDTO.getStatus() != UrlStatus.ACTIVE) {
+                throw new ResourceNotFoundException("URL is not active", shortCode);
+            }
             urlRepository.incrementClicks(shortCode);
             cacheService.increment(CacheConstants.clicksKey(shortCode));
-            UrlDTO urlDTO = cachedUrl.get();
             urlDTO.setClicks(urlDTO.getClicks() + 1);
             cacheService.set(cacheKey, urlDTO, CacheConstants.URL_TTL);
             // Also update the cache for URL by ID
@@ -235,8 +239,8 @@ public class UrlServiceImpl implements UrlService {
         }
 
         log.debug("Cache miss for short code: {}", shortCode);
-        Url url = urlRepository.findByShortCode(shortCode)
-                .orElseThrow(() -> new ResourceNotFoundException("URL", shortCode));
+        Url url = urlRepository.findByShortCodeAndStatus(shortCode, UrlStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("URL is not active", shortCode));
         url.setClicks(url.getClicks() + 1);
         Url savedUrl = urlRepository.save(url);
         UrlDTO urlDTO = urlMapper.toDTO(savedUrl);
@@ -375,6 +379,27 @@ public class UrlServiceImpl implements UrlService {
         }
 
         return urls;
+    }
+
+    @Override
+    public UrlDTO updateUrlStatusByShortCode(String shortCode, UUID userId, UrlStatus newStatus) {
+        log.info("Updating status for URL with short code: {} to {} for user: {}", shortCode, newStatus, userId);
+        Url url = getUrlByShortCodeAndCheckOwnership(shortCode, userId);
+        url.setStatus(newStatus);
+        Url updatedUrl = urlRepository.save(url);
+        UrlDTO updatedUrlDTO = urlMapper.toDTO(updatedUrl);
+
+        // Invalidate caches
+        String urlKey = CacheConstants.urlByShortCodeKey(shortCode);
+        String urlByIdKey = CacheConstants.urlKey(updatedUrl.getId());
+        cacheService.delete(urlKey, urlByIdKey);
+        if (userId != null) {
+            String userUrlsKey = CacheConstants.userUrlsKey(userId);
+            cacheService.delete(userUrlsKey);
+            log.debug("Invalidated user URLs cache for user: {} (status update)", userId);
+        }
+        log.debug("Invalidated URL cache for short code: {} (status update)", shortCode);
+        return updatedUrlDTO;
     }
 
     /**
