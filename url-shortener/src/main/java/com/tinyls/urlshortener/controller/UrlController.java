@@ -56,76 +56,6 @@ public class UrlController {
     }
 
     /**
-     * Retrieves a URL by its short code.
-     * Requires authentication.
-     * 
-     * @param shortCode   The short code of the URL
-     * @param userDetails The authenticated user's details
-     * @return The URL details
-     * @throws AccessDeniedException if the user is not authorized to access the URL
-     */
-    @GetMapping("/{shortCode}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UrlDTO> getUrlByShortCode(
-            @PathVariable String shortCode,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
-            log.debug("Retrieving URL with short code: {} for user: {}", shortCode, userId);
-            return ResponseEntity.ok(urlService.getUrlByShortCode(shortCode, userId));
-        } catch (UnauthorizedException e) {
-            throw new AccessDeniedException(e.getMessage());
-        }
-    }
-
-    /**
-     * Deletes a URL by its short code.
-     * Requires authentication.
-     * 
-     * @param shortCode   The short code of the URL to delete
-     * @param userDetails The authenticated user's details
-     * @return No content response if deletion is successful
-     * @throws AccessDeniedException if the user is not authorized to delete the URL
-     */
-    @DeleteMapping("/{shortCode}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> deleteUrlByShortCode(
-            @PathVariable String shortCode,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
-            log.info("Deleting URL with short code: {} for user: {}", shortCode, userId);
-            urlService.deleteUrlByShortCode(shortCode, userId);
-            return ResponseEntity.noContent().build();
-        } catch (UnauthorizedException e) {
-            throw new AccessDeniedException(e.getMessage());
-        }
-    }
-
-    /**
-     * Increments the click count for a URL.
-     * Requires authentication.
-     * 
-     * @param shortCode   The short code of the URL
-     * @param userDetails The authenticated user's details
-     * @return The updated URL details
-     * @throws AccessDeniedException if the user is not authorized to access the URL
-     */
-    @PostMapping("/{shortCode}/click")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UrlDTO> incrementClicks(
-            @PathVariable String shortCode,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
-            log.debug("Incrementing clicks for URL with short code: {} for user: {}", shortCode, userId);
-            return ResponseEntity.ok(urlService.incrementClicks(shortCode, userId));
-        } catch (UnauthorizedException e) {
-            throw new AccessDeniedException(e.getMessage());
-        }
-    }
-
-    /**
      * Redirects to the original URL and increments the click count.
      * Public endpoint, no authentication required.
      * 
@@ -159,31 +89,6 @@ public class UrlController {
             UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
             log.debug("Retrieving URL with ID: {} for user: {}", id, userId);
             return ResponseEntity.ok(urlService.getUrlById(id, userId));
-        } catch (UnauthorizedException e) {
-            throw new AccessDeniedException(e.getMessage());
-        }
-    }
-
-    /**
-     * Updates a URL by its ID.
-     * Requires authentication.
-     * 
-     * @param id          The ID of the URL to update
-     * @param urlDTO      The updated URL details
-     * @param userDetails The authenticated user's details
-     * @return The updated URL details
-     * @throws AccessDeniedException if the user is not authorized to update the URL
-     */
-    @PutMapping("/id/{id}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UrlDTO> updateUrlById(
-            @PathVariable Long id,
-            @Valid @RequestBody UrlDTO urlDTO,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
-            log.info("Updating URL with ID: {} for user: {}", id, userId);
-            return ResponseEntity.ok(urlService.updateUrlById(id, urlDTO, userId));
         } catch (UnauthorizedException e) {
             throw new AccessDeniedException(e.getMessage());
         }
@@ -230,23 +135,23 @@ public class UrlController {
     }
 
     /**
-     * Updates the status of a URL (ACTIVE <-> INACTIVE) by short code.
+     * Updates the status of a URL (ACTIVE <-> INACTIVE) by ID.
      * Only the owner can perform this action.
      *
-     * @param shortCode   The short code of the URL
+     * @param id          The ID of the URL
      * @param statusBody  The new status in the request body
      * @param userDetails The authenticated user's details
      * @return The updated URL details
      */
-    @PatchMapping("/{shortCode}/status")
+    @PatchMapping("/id/{id}/status")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UrlDTO> updateUrlStatusByShortCode(
-            @PathVariable String shortCode,
+    public ResponseEntity<UrlDTO> updateUrlStatusById(
+            @PathVariable Long id,
             @RequestBody StatusUpdateRequest statusBody,
             @AuthenticationPrincipal UserDetails userDetails) {
         UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
         UrlStatus newStatus = statusBody.getStatus();
-        return ResponseEntity.ok(urlService.updateUrlStatusByShortCode(shortCode, userId, newStatus));
+        return ResponseEntity.ok(urlService.updateUrlStatusById(id, userId, newStatus));
     }
 
     /**

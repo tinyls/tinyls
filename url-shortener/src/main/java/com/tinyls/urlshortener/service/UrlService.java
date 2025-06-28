@@ -19,28 +19,6 @@ public interface UrlService {
     UrlDTO createUrl(UrlDTO urlDTO, UUID userId);
 
     /**
-     * Get URL by short code
-     * 
-     * @param shortCode URL short code
-     * @param userId    ID of the user requesting the URL
-     * @return URL data
-     * @throws jakarta.persistence.EntityNotFoundException if URL not found
-     */
-    UrlDTO getUrlByShortCode(String shortCode, UUID userId);
-
-    /**
-     * Delete URL by ShortCode
-     * 
-     * @param shortCode URL short code
-     * @param userId    ID of the user deleting the URL
-     * @throws jakarta.persistence.EntityNotFoundException             if URL not
-     *                                                                 found
-     * @throws com.tinyls.urlshortener.exception.UnauthorizedException if user is
-     *                                                                 not the owner
-     */
-    void deleteUrlByShortCode(String shortCode, UUID userId);
-
-    /**
      * Get URL by ID
      * 
      * @param id     URL ID
@@ -52,20 +30,6 @@ public interface UrlService {
      *                                                                 not the owner
      */
     UrlDTO getUrlById(Long id, UUID userId);
-
-    /**
-     * Update URL data
-     * 
-     * @param id     URL ID
-     * @param urlDTO updated URL data
-     * @param userId ID of the user updating the URL
-     * @return updated URL
-     * @throws jakarta.persistence.EntityNotFoundException             if URL not
-     *                                                                 found
-     * @throws com.tinyls.urlshortener.exception.UnauthorizedException if user is
-     *                                                                 not the owner
-     */
-    UrlDTO updateUrlById(Long id, UrlDTO urlDTO, UUID userId);
 
     /**
      * Delete URL
@@ -89,19 +53,6 @@ public interface UrlService {
     List<UrlDTO> getUrlsByUser(UUID userId);
 
     /**
-     * Increment click count for a URL
-     * 
-     * @param shortCode URL short code
-     * @param userId    ID of the user incrementing clicks
-     * @return updated URL data
-     * @throws jakarta.persistence.EntityNotFoundException             if URL not
-     *                                                                 found
-     * @throws com.tinyls.urlshortener.exception.UnauthorizedException if user is
-     *                                                                 not the owner
-     */
-    UrlDTO incrementClicks(String shortCode, UUID userId);
-
-    /**
      * Get original URL and increment click count
      * 
      * @param shortCode URL short code
@@ -111,11 +62,11 @@ public interface UrlService {
     String getAndIncrementClicks(String shortCode);
 
     /**
-     * Toggle the status of a URL (ACTIVE <-> INACTIVE) by short code.
+     * Update the status of a URL (ACTIVE <-> INACTIVE) by ID.
      * Only the owner can perform this action.
      *
-     * @param shortCode URL short code
-     * @param userId    ID of the user toggling the status
+     * @param id        URL ID
+     * @param userId    ID of the user updating the status
      * @param newStatus The new status to set
      * @return updated URL data
      * @throws jakarta.persistence.EntityNotFoundException             if URL not
@@ -123,5 +74,5 @@ public interface UrlService {
      * @throws com.tinyls.urlshortener.exception.UnauthorizedException if user is
      *                                                                 not the owner
      */
-    UrlDTO updateUrlStatusByShortCode(String shortCode, UUID userId, UrlStatus newStatus);
+    UrlDTO updateUrlStatusById(Long id, UUID userId, UrlStatus newStatus);
 }

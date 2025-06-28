@@ -40,7 +40,7 @@ public interface UrlMapper {
     @Mapping(target = "clicks", ignore = true)
     @Mapping(target = "user", ignore = true)
     @Mapping(target = "shortCode", ignore = true)
-    @Mapping(target = "status", source = "status")
+    @Mapping(target = "status", ignore = true)
     Url toEntity(UrlDTO urlDTO);
 
     /**

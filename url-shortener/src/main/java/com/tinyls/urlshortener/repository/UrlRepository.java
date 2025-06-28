@@ -117,4 +117,25 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
     @Transactional
     @Query("UPDATE Url u SET u.status = :status WHERE u.shortCode = :shortCode")
     void updateStatusByShortCode(String shortCode, com.tinyls.urlshortener.model.UrlStatus status);
+
+    /**
+     * Atomically increment the clicks count for a URL by its ID.
+     *
+     * @param id the unique ID of the URL
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Url u SET u.clicks = u.clicks + 1 WHERE u.id = :id")
+    void incrementClicksById(Long id);
+
+    /**
+     * Update the status of a URL by its ID.
+     *
+     * @param id     the unique ID of the URL
+     * @param status the new status
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Url u SET u.status = :status WHERE u.id = :id")
+    void updateStatusById(Long id, com.tinyls.urlshortener.model.UrlStatus status);
 }
