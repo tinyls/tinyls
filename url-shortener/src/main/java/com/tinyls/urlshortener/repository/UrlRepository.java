@@ -1,6 +1,8 @@
 package com.tinyls.urlshortener.repository;
 
+import com.tinyls.urlshortener.config.CacheConstants;
 import com.tinyls.urlshortener.model.Url;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -28,6 +30,15 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
      * @return an Optional containing the URL if found, empty otherwise
      */
     Optional<Url> findByShortCode(String shortCode);
+
+    /**
+     * Retrieve URL ID by short code with caching.
+     *
+     * @param shortCode the short code
+     * @return Optional containing the ID if found
+     */
+    @Query("SELECT u.id FROM Url u WHERE u.shortCode = :shortCode")
+    Optional<Long> findIdByShortCode(String shortCode);
 
     /**
      * Find all URLs associated with a specific user.
@@ -88,11 +99,21 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
     Optional<Url> findFirstByOriginalUrlAndUserIsNull(String originalUrl);
 
     /**
+     * Retrieve a URL by its ID with caching.
+     *
+     * @param id URL ID
+     * @return Optional containing the URL if found
+     */
+    @Override
+    Optional<Url> findById(Long id);
+
+    /**
      * Atomically increment the clicks count for a URL by its short code.
      *
      * @param shortCode the unique short code of the URL
      */
-    @Modifying
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Transactional
     @Query("UPDATE Url u SET u.clicks = u.clicks + 1 WHERE u.shortCode = :shortCode")
     void incrementClicks(String shortCode);
@@ -113,7 +134,7 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
      * @param shortCode the unique short code of the URL
      * @param status    the new status
      */
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Transactional
     @Query("UPDATE Url u SET u.status = :status WHERE u.shortCode = :shortCode")
     void updateStatusByShortCode(String shortCode, com.tinyls.urlshortener.model.UrlStatus status);
@@ -123,7 +144,7 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
      *
      * @param id the unique ID of the URL
      */
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Transactional
     @Query("UPDATE Url u SET u.clicks = u.clicks + 1 WHERE u.id = :id")
     void incrementClicksById(Long id);
@@ -134,7 +155,7 @@ public interface UrlRepository extends JpaRepository<Url, Long> {
      * @param id     the unique ID of the URL
      * @param status the new status
      */
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Transactional
     @Query("UPDATE Url u SET u.status = :status WHERE u.id = :id")
     void updateStatusById(Long id, com.tinyls.urlshortener.model.UrlStatus status);

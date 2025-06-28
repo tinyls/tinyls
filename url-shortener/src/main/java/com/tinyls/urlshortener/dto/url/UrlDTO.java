@@ -11,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.tinyls.urlshortener.model.UrlStatus;
 
+import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.UUID;
 
@@ -22,7 +23,10 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UrlDTO {
+public class UrlDTO implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
         /**
          * The unique identifier of the URL.
          */

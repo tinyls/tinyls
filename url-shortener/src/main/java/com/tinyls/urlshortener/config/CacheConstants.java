@@ -22,6 +22,7 @@ public final class CacheConstants {
     public static final String USER_CACHE = "users";
     public static final String CLICKS_CACHE = "clicks";
     public static final String SHORT_CODE_MAPPING_CACHE = "shortcode_mappings";
+    public static final String USER_URL_LIST_CACHE = "user_url_lists";
 
     // TTL values in seconds
     public static final long URL_TTL = 3600; // 1 hour

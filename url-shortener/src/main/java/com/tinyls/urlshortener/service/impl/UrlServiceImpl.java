@@ -15,6 +15,11 @@ import com.tinyls.urlshortener.service.UrlService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
@@ -37,8 +42,18 @@ public class UrlServiceImpl implements UrlService {
     private final UserRepository userRepository;
     private final UrlMapper urlMapper;
     private final CacheService cacheService;
+    private final CacheManager cacheManager;
 
     @Override
+    @Caching(
+            put = {
+                    @CachePut(value = CacheConstants.URL_CACHE, key = "#result.id"),
+                    @CachePut(value = CacheConstants.SHORT_CODE_MAPPING_CACHE, key = "#result.shortCode")
+            },
+            evict = {
+                    @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
+            }
+    )
     public UrlDTO createUrl(UrlDTO urlDTO, UUID userId) {
         log.info("Creating new URL for user: {}", userId);
 
@@ -71,187 +86,49 @@ public class UrlServiceImpl implements UrlService {
         Url savedUrl = urlRepository.saveAndFlush(url);
         UrlDTO savedUrlDTO = urlMapper.toDTO(savedUrl);
 
-        // Invalidate user URLs cache
-        if (userId != null) {
-            String userUrlsKey = CacheConstants.userUrlsKey(userId);
-            cacheService.delete(userUrlsKey);
-            log.debug("Invalidated user URLs cache for user: {}", userId);
-        }
-
         return savedUrlDTO;
     }
 
     @Override
-    public String getAndIncrementClicks(String shortCode) {
-        log.debug("Getting and incrementing clicks for URL with short code: {}", shortCode);
-
-        String mappingKey = CacheConstants.shortCodeToIdKey(shortCode);
-        Optional<Long> cachedUrlId = cacheService.get(mappingKey, Long.class);
-
-        if (cachedUrlId.isPresent()) {
-            log.debug("Cache hit for short code mapping: {} -> ID: {}", shortCode, cachedUrlId.get());
-            // Get the URL by ID using cached ID
-            UrlDTO urlDTO = getUrlById(cachedUrlId.get(), null); // No user check for redirects
-            if (urlDTO.getStatus() != UrlStatus.ACTIVE) {
-                throw new ResourceNotFoundException("URL is not active", shortCode);
-            }
-            // Use ID for increment operation
-            urlRepository.incrementClicksById(urlDTO.getId());
-            cacheService.increment(CacheConstants.clicksKey(shortCode));
-
-            // Get fresh data from database after increment to ensure cache consistency
-            Url refreshedUrl = refreshUrlAfterClickIncrement(urlDTO.getId());
-            UrlDTO freshUrlDTO = urlMapper.toDTO(refreshedUrl);
-
-            // Force update cache with fresh data
-            forceUpdateUrlCache(refreshedUrl, freshUrlDTO);
-
-            if (freshUrlDTO.getUserId() != null) {
-                String userUrlsKey = CacheConstants.userUrlsKey(freshUrlDTO.getUserId());
-                try {
-                    cacheService.delete(userUrlsKey);
-                    log.info("Invalidated user URLs cache for user: {} (redirect)", freshUrlDTO.getUserId());
-                } catch (Exception e) {
-                    log.error("Failed to invalidate user URLs cache for user: {} (redirect)", freshUrlDTO.getUserId(),
-                            e);
-                }
-            }
-            return freshUrlDTO.getOriginalUrl();
-        }
-
-        log.debug("Cache miss for short code: {}", shortCode);
-        Url url = urlRepository.findByShortCodeAndStatus(shortCode, UrlStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException("URL is not active", shortCode));
-
-        // Use ID for increment operation
-        urlRepository.incrementClicksById(url.getId());
-
-        // Force transaction commit and refresh the URL to get the updated click count
-        Url refreshedUrl = refreshUrlAfterClickIncrement(url.getId());
-
-        UrlDTO urlDTO = urlMapper.toDTO(refreshedUrl);
-
-        // Force update cache with fresh data
-        forceUpdateUrlCache(refreshedUrl, urlDTO);
-
-        cacheService.increment(CacheConstants.clicksKey(shortCode));
-
-        if (refreshedUrl.getUser() != null) {
-            cacheService.delete(CacheConstants.userUrlsKey(refreshedUrl.getUser().getId()));
-        }
-        return refreshedUrl.getOriginalUrl();
-    }
-
-    @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.URL_CACHE, key = "#id")
     public UrlDTO getUrlById(Long id, UUID userId) {
         log.debug("Retrieving URL with ID: {} for user: {}", id, userId);
 
-        // Try to get from cache first
-        String cacheKey = CacheConstants.urlKey(id);
-        log.debug("Using cache key for URL ID {}: {}", id, cacheKey);
-        Optional<UrlDTO> cachedUrl = cacheService.get(cacheKey, UrlDTO.class);
-
-        if (cachedUrl.isPresent()) {
-            log.debug("Cache hit for URL ID: {} - Status: {}", id, cachedUrl.get().getStatus());
-            UrlDTO urlDTO = cachedUrl.get();
-
-            // Check ownership for cached URL
-            if (urlDTO.getUserId() != null && !urlDTO.getUserId().equals(userId)) {
-                throw new UnauthorizedException("You don't have permission to access this URL");
-            }
-
-            // For now, return cached data but log a warning if it might be stale
-            // In a production environment, you might want to add a timestamp check
-            return urlDTO;
-        }
-
-        // Cache miss - get from database
-        log.debug("Cache miss for URL ID: {}", id);
-        Url url = getUrlByIdAndCheckOwnership(id, userId);
-        UrlDTO urlDTO = urlMapper.toDTO(url);
-        log.debug("Retrieved from database - URL ID: {}, Status: {}", id, urlDTO.getStatus());
-
-        // Cache the URL for future requests
-        cacheService.set(cacheKey, urlDTO, CacheConstants.URL_TTL);
-        log.debug("Cached URL for ID: {} with key: {}", id, cacheKey);
-
-        return urlDTO;
-    }
-
-    @Override
-    public void deleteUrlById(Long id, UUID userId) {
-        log.info("Deleting URL with ID: {} for user: {}", id, userId);
-        Url url = getUrlByIdAndCheckOwnership(id, userId);
-
-        // Get short code and user ID before deletion for cache invalidation
-        String shortCode = url.getShortCode();
-        UUID urlUserId = url.getUser() != null ? url.getUser().getId() : null;
-
-        urlRepository.delete(url);
-
-        // Invalidate caches
-        String mappingKey = CacheConstants.shortCodeToIdKey(shortCode);
-        String urlByIdKey = CacheConstants.urlKey(id);
-        String clicksKey = CacheConstants.clicksKey(shortCode);
-        cacheService.delete(mappingKey, urlByIdKey, clicksKey);
-
-        if (urlUserId != null) {
-            String userUrlsKey = CacheConstants.userUrlsKey(urlUserId);
-            cacheService.delete(userUrlsKey);
-            log.debug("Invalidated user URLs cache for user: {}", urlUserId);
-        }
-
-        log.debug("Invalidated URL cache for ID: {} and short code: {}", id, shortCode);
+        Url url = urlRepository.findById(id)
+                          .orElseThrow(() -> new ResourceNotFoundException("URL", id.toString()));
+        checkOwnership(url, userId);
+        return urlMapper.toDTO(url);
     }
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId")
     public List<UrlDTO> getUrlsByUser(UUID userId) {
         log.debug("Retrieving all URLs for user: {}", userId);
-
-        // Try to get from cache first
-        String cacheKey = CacheConstants.userUrlsKey(userId);
-
-        // Use a wrapper class to preserve type information during serialization
-        try {
-            Optional<UrlListWrapper> cachedWrapper = cacheService.get(cacheKey, UrlListWrapper.class);
-            if (cachedWrapper.isPresent()) {
-                log.debug("Cache hit for user URLs: {}", userId);
-                return cachedWrapper.get().getUrls();
-            }
-        } catch (Exception e) {
-            log.warn("Failed to retrieve cached URLs for user: {}, will fetch from database", userId, e);
-            // Delete the corrupted cache entry
-            cacheService.delete(cacheKey);
-        }
-
-        // Cache miss - get from database
-        log.debug("Cache miss for user URLs: {}", userId);
-        List<UrlDTO> urls = urlRepository.findByUserId(userId)
-                .stream()
-                .map(urlMapper::toDTO)
-                .toList();
-
-        // Cache the URLs using a wrapper to preserve type information
-        try {
-            UrlListWrapper wrapper = new UrlListWrapper(urls);
-            cacheService.set(cacheKey, wrapper, CacheConstants.URL_TTL);
-        } catch (Exception e) {
-            log.warn("Failed to cache URLs for user: {}", userId, e);
-        }
-
-        return urls;
+        return urlRepository.findByUserId(userId)
+                       .stream()
+                       .map(urlMapper::toDTO)
+                       .toList();
     }
 
     /**
      * Update URL status by ID.
-     * 
+     *
      * @param id        URL ID
      * @param userId    User ID
      * @param newStatus New status
      * @return Updated URL DTO
      */
+    @Override
+    @Caching(
+            put = {
+                    @CachePut(value = CacheConstants.URL_CACHE, key = "#id")
+            },
+            evict = {
+                    @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
+            }
+    )
     public UrlDTO updateUrlStatusById(Long id, UUID userId, UrlStatus newStatus) {
         log.info("Updating status for URL with ID: {} to {} for user: {}", id, newStatus, userId);
 
@@ -259,108 +136,74 @@ public class UrlServiceImpl implements UrlService {
         Url url = getUrlByIdAndCheckOwnership(id, userId);
         log.debug("Ownership verified for URL ID: {} - user: {}", id, userId);
 
-        // Use ID for status update operation
         urlRepository.updateStatusById(id, newStatus);
         log.debug("Database update completed for URL ID: {}", id);
 
-        // Force transaction commit and refresh the URL to get the updated status
-        Url refreshedUrl = refreshUrlAfterStatusUpdate(id);
-        log.debug("Refreshed URL from database - ID: {}, Status: {}, ShortCode: {}",
-                id, refreshedUrl.getStatus(), refreshedUrl.getShortCode());
-
-        UrlDTO updatedUrlDTO = urlMapper.toDTO(refreshedUrl);
-        log.debug("Created DTO from refreshed URL - ID: {}, Status: {}",
-                updatedUrlDTO.getId(), updatedUrlDTO.getStatus());
-
-        // Force update cache with fresh data to ensure consistency
-        forceUpdateUrlCache(refreshedUrl, updatedUrlDTO);
-
-        // Invalidate user URLs cache to ensure fresh data on next fetch
-        if (userId != null) {
-            String userUrlsKey = CacheConstants.userUrlsKey(userId);
-            cacheService.delete(userUrlsKey);
-            log.debug("Invalidated user URLs cache for user: {} (status update)", userId);
-        }
+        Url refreshedUrl = urlRepository.findById(id)
+                                   .orElseThrow(() -> new ResourceNotFoundException("URL", id.toString()));
+        UrlDTO updatedUrlDTO = cacheUrl(refreshedUrl);
 
         log.info("Successfully updated URL status - ID: {}, New Status: {}, ShortCode: {}",
                 id, newStatus, refreshedUrl.getShortCode());
         return updatedUrlDTO;
     }
 
-    /**
-     * Force update the cache with fresh data from database.
-     * This ensures cache consistency after any URL modifications.
-     */
-    private void forceUpdateUrlCache(Url url, UrlDTO urlDTO) {
+    @Override
+    @Caching(evict={
+            @CacheEvict(value=CacheConstants.URL_CACHE,key="#id"),
+            @CacheEvict(value=CacheConstants.USER_URL_LIST_CACHE,key="#userId",condition="#userId!=null")
+    })
+    public void deleteUrlById(Long id, UUID userId) {
+        log.info("Deleting URL with ID: {} for user: {}", id, userId);
+        Url url = getUrlByIdAndCheckOwnership(id, userId);
+
+        // Capture short code for cache eviction
         String shortCode = url.getShortCode();
+
+        urlRepository.delete(url);
+
+        cacheManager.getCache(CacheConstants.SHORT_CODE_MAPPING_CACHE).evict(shortCode);
+        cacheManager.getCache(CacheConstants.CLICKS_CACHE).evict(shortCode);
+
+        // Invalidate caches
         String mappingKey = CacheConstants.shortCodeToIdKey(shortCode);
-        String urlByIdKey = CacheConstants.urlKey(url.getId());
+        String clicksKey = CacheConstants.clicksKey(shortCode);
 
-        // Update both the mapping and the URL cache with fresh data
-        cacheService.set(mappingKey, url.getId(), CacheConstants.SHORT_CODE_MAPPING_TTL);
-        cacheService.set(urlByIdKey, urlDTO, CacheConstants.URL_TTL);
+        cacheService.delete(mappingKey, clicksKey);
 
-        log.debug("Force updated cache for URL ID: {} with fresh data - Status: {}",
-                url.getId(), urlDTO.getStatus());
+        log.debug("Invalidated URL cache for ID: {} and short code: {}", id, shortCode);
     }
 
-    /**
-     * Debug method to manually clear cache for a specific URL.
-     * This can be used for testing and debugging cache issues.
-     */
-    public void clearUrlCache(Long urlId, String shortCode) {
-        String mappingKey = CacheConstants.shortCodeToIdKey(shortCode);
-        String urlByIdKey = CacheConstants.urlKey(urlId);
+    @Override
+    public String getAndIncrementClicks(String shortCode) {
+        Url url = urlRepository.findByShortCodeAndStatus(shortCode, UrlStatus.ACTIVE)
+                          .orElseThrow(() -> new ResourceNotFoundException("URL is not active", shortCode));
 
-        cacheService.delete(mappingKey, urlByIdKey);
-        log.info("Manually cleared cache for URL ID: {}, ShortCode: {}", urlId, shortCode);
+        // increment in DB
+        urlRepository.incrementClicksById(url.getId());
+
+        // update caches
+        UrlDTO freshDTO = urlMapper.toDTO(
+                urlRepository.findById(url.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("URL", url.getId().toString()))
+        );
+        // refresh both caches
+        cacheManager.getCache(CacheConstants.URL_CACHE).put(freshDTO.getId(), freshDTO);
+        cacheManager.getCache(CacheConstants.SHORT_CODE_MAPPING_CACHE)
+                .put(freshDTO.getShortCode(), freshDTO.getId());
+        // bump click‐count cache
+        cacheService.increment(CacheConstants.clicksKey(shortCode));
+
+        return freshDTO.getOriginalUrl();
     }
 
-    /**
-     * Debug method to check cache contents for a specific URL.
-     * This can be used for testing and debugging cache issues.
-     */
-    public void debugUrlCache(Long urlId, String shortCode) {
-        String mappingKey = CacheConstants.shortCodeToIdKey(shortCode);
-        String urlByIdKey = CacheConstants.urlKey(urlId);
-
-        Optional<Long> cachedUrlId = cacheService.get(mappingKey, Long.class);
-        Optional<UrlDTO> cachedById = cacheService.get(urlByIdKey, UrlDTO.class);
-
-        log.info("Cache debug for URL ID: {}, ShortCode: {}", urlId, shortCode);
-        log.info("ShortCode mapping key: {} - Present: {}, Mapped ID: {}",
-                mappingKey, cachedUrlId.isPresent(),
-                cachedUrlId.isPresent() ? cachedUrlId.get() : "N/A");
-        log.info("ID cache key: {} - Present: {}, Status: {}",
-                urlByIdKey, cachedById.isPresent(),
-                cachedById.isPresent() ? cachedById.get().getStatus() : "N/A");
-    }
 
     /**
-     * Debug method to force refresh cache from database.
-     * This can be used for testing and debugging cache issues.
+     * Update the URL cache with the latest entity state.
      */
-    public UrlDTO forceRefreshUrlCache(Long urlId, UUID userId) {
-        log.info("Force refreshing cache for URL ID: {}", urlId);
-
-        // Clear existing cache
-        Url url = urlRepository.findById(urlId)
-                .orElseThrow(() -> new ResourceNotFoundException("URL", urlId.toString()));
-        String shortCode = url.getShortCode();
-        clearUrlCache(urlId, shortCode);
-
-        // Force cache miss by calling getUrlById
-        return getUrlById(urlId, userId);
-    }
-
-    /**
-     * Refresh URL after status update to ensure transaction is committed.
-     * Uses a separate transaction to force commit.
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Url refreshUrlAfterStatusUpdate(Long urlId) {
-        return urlRepository.findById(urlId)
-                .orElseThrow(() -> new ResourceNotFoundException("URL", urlId.toString()));
+    @CachePut(value = CacheConstants.URL_CACHE, key = "#url.id")
+    public UrlDTO cacheUrl(Url url) {
+        return urlMapper.toDTO(url);
     }
 
     /**
@@ -432,30 +275,6 @@ public class UrlServiceImpl implements UrlService {
         }
         if (!url.getUser().getId().equals(userId)) {
             throw new UnauthorizedException("You don't have permission to access this URL");
-        }
-    }
-
-    /**
-     * Wrapper class to preserve type information when caching List<UrlDTO>.
-     * This helps Jackson properly serialize/deserialize the list.
-     */
-    private static class UrlListWrapper {
-        private List<UrlDTO> urls;
-
-        // Default constructor for Jackson
-        public UrlListWrapper() {
-        }
-
-        public UrlListWrapper(List<UrlDTO> urls) {
-            this.urls = urls;
-        }
-
-        public List<UrlDTO> getUrls() {
-            return urls;
-        }
-
-        public void setUrls(List<UrlDTO> urls) {
-            this.urls = urls;
         }
     }
 }
