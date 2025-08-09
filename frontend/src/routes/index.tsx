@@ -5,7 +5,6 @@ export const Route = createFileRoute("/")({
 	component: App,
 })
 
-// TODO: sometimes when the backend is not available and user already signed in before, the usernav shows user avatar and logout but not the name.
 function App() {
 	return (
 		<div

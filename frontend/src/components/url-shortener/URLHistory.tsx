@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { UrlDTO, UrlDTOStatus } from "@/api/schemas";
 import {
   useDeleteUrlMutation,
   useUrlHistoryQuery,
@@ -22,12 +23,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { QRCode } from "@/components/ui/qr-code";
 import SearchBar from "@/components/ui/search";
-import type { UrlDTO } from "@/api/schemas";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useState } from "react";
 
-interface UrlData {
+interface UrlData extends UrlDTO {
   id: number;
   originalUrl: string;
   shortenedUrl: string;
@@ -62,8 +62,8 @@ export default function URLHistory() {
     toast("Copied to clipboard");
   };
 
-  const handleDelete = (shortCode: string) => {
-    deleteUrl(shortCode);
+  const handleDelete = (id: number) => {
+    deleteUrl(id);
   };
 
   const showQrCode = (url: UrlData) => {
@@ -174,7 +174,7 @@ export default function URLHistory() {
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                        onClick={() => handleDelete(url.shortCode)}
+                        onClick={() => handleDelete(url.id)}
                         title="Delete URL"
                       >
                         <Trash2 className="h-4 w-4" />

@@ -5,14 +5,8 @@
  * RESTful API for URL shortening service. Provides endpoints for URL shortening, redirection, user management, and analytics.
  * OpenAPI spec version: 1.0.0
  */
-import type { UrlDTOStatus } from "./urlDTOStatus"
+import type { StatusUpdateRequestStatus } from "./statusUpdateRequestStatus"
 
-export interface UrlDTO {
-	id?: number
-	shortCode?: string
-	originalUrl?: string
-	createdAt?: string
-	clicks?: number
-	userId?: string
-	status?: UrlDTOStatus
+export interface StatusUpdateRequest {
+	status?: StatusUpdateRequestStatus
 }

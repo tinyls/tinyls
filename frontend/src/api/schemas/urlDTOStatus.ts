@@ -5,14 +5,11 @@
  * RESTful API for URL shortening service. Provides endpoints for URL shortening, redirection, user management, and analytics.
  * OpenAPI spec version: 1.0.0
  */
-import type { UrlDTOStatus } from "./urlDTOStatus"
 
-export interface UrlDTO {
-	id?: number
-	shortCode?: string
-	originalUrl?: string
-	createdAt?: string
-	clicks?: number
-	userId?: string
-	status?: UrlDTOStatus
-}
+export type UrlDTOStatus = (typeof UrlDTOStatus)[keyof typeof UrlDTOStatus]
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const UrlDTOStatus = {
+	ACTIVE: "ACTIVE",
+	INACTIVE: "INACTIVE",
+} as const

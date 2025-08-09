@@ -1,6 +1,6 @@
 import {
   useCreateUrl,
-  useDeleteUrlByShortCode,
+  useDeleteUrlById,
   useGetUrlsByUser,
 } from "@/api/client/url-controller/url-controller";
 
@@ -50,7 +50,7 @@ export function useUrlHistoryQuery() {
 // Mutation for deleting a URL
 export function useDeleteUrlMutation() {
   const queryClient = useQueryClient();
-  const mutation = useDeleteUrlByShortCode<HTTPValidationError, unknown>({
+  const mutation = useDeleteUrlById<HTTPValidationError, unknown>({
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["url-history"] });
@@ -63,8 +63,8 @@ export function useDeleteUrlMutation() {
   });
 
   // Ergonomic mutate function for components
-  const deleteUrl = (shortCode: string) => {
-    mutation.mutate({ shortCode });
+  const deleteUrl = (id: number) => {
+    mutation.mutate({ id });
   };
 
   return {
