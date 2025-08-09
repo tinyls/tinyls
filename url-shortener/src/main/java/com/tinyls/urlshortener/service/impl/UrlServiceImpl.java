@@ -4,6 +4,7 @@ import com.tinyls.urlshortener.config.CacheConstants;
 import com.tinyls.urlshortener.dto.url.UrlDTO;
 import com.tinyls.urlshortener.exception.ResourceNotFoundException;
 import com.tinyls.urlshortener.exception.UnauthorizedException;
+import com.tinyls.urlshortener.exception.ShortCodeAlreadyExistsException;
 import com.tinyls.urlshortener.mapper.UrlMapper;
 import com.tinyls.urlshortener.model.Url;
 import com.tinyls.urlshortener.model.User;
@@ -20,6 +21,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
@@ -27,6 +29,8 @@ import org.springframework.transaction.annotation.Propagation;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.tinyls.urlshortener.util.ShortCodeValidator;
 
 /**
  * Implementation of the UrlService interface.
@@ -45,27 +49,37 @@ public class UrlServiceImpl implements UrlService {
     private final CacheManager cacheManager;
 
     @Override
-    @Caching(
-            put = {
-                    @CachePut(value = CacheConstants.URL_CACHE, key = "#result.id"),
-                    @CachePut(value = CacheConstants.SHORT_CODE_MAPPING_CACHE, key = "#result.shortCode")
-            },
-            evict = {
-                    @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
-            }
-    )
+    @Caching(put = {
+            @CachePut(value = CacheConstants.URL_CACHE, key = "#result.id"),
+            @CachePut(value = CacheConstants.SHORT_CODE_MAPPING_CACHE, key = "#result.shortCode")
+    }, evict = {
+            @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
+    })
     public UrlDTO createUrl(UrlDTO urlDTO, UUID userId) {
         log.info("Creating new URL for user: {}", userId);
 
-        // For authenticated users, check if they already have this URL
-        if (userId != null) {
+        // If caller specifies a custom shortCode, validate format and reserved words
+        // early
+        if (urlDTO.getShortCode() != null && !urlDTO.getShortCode().isBlank()) {
+            // Only authenticated users can create custom short codes
+            if (userId == null) {
+                throw new UnauthorizedException("Custom short codes are only available for authenticated users");
+            }
+
+            ShortCodeValidator.validateOrThrow(urlDTO.getShortCode());
+        }
+
+        // For authenticated users, check if they already have this URL (re-use
+        // existing)
+        if (userId != null && (urlDTO.getShortCode() == null || urlDTO.getShortCode().isBlank())) {
             Optional<Url> existingUrl = urlRepository.findFirstByUserIdAndOriginalUrl(userId, urlDTO.getOriginalUrl());
             if (existingUrl.isPresent()) {
                 log.debug("Found existing URL for user: {}", userId);
                 return urlMapper.toDTO(existingUrl.get());
             }
-        } else {
-            // For anonymous users, check if this URL exists without a user
+        } else if (userId == null && (urlDTO.getShortCode() == null || urlDTO.getShortCode().isBlank())) {
+            // For anonymous users when not forcing a custom code, reuse existing anonymous
+            // URL
             Optional<Url> existingUrl = urlRepository.findFirstByOriginalUrlAndUserIsNull(urlDTO.getOriginalUrl());
             if (existingUrl.isPresent()) {
                 log.debug("Found existing anonymous URL");
@@ -73,7 +87,7 @@ public class UrlServiceImpl implements UrlService {
             }
         }
 
-        // Create new URL
+        // Map and create new URL
         Url url = urlMapper.toEntity(urlDTO);
         url.setClicks(0L);
 
@@ -83,10 +97,14 @@ public class UrlServiceImpl implements UrlService {
             url.setUser(user);
         }
 
-        Url savedUrl = urlRepository.saveAndFlush(url);
-        UrlDTO savedUrlDTO = urlMapper.toDTO(savedUrl);
-
-        return savedUrlDTO;
+        try {
+            Url savedUrl = urlRepository.saveAndFlush(url);
+            return urlMapper.toDTO(savedUrl);
+        } catch (DataIntegrityViolationException ex) {
+            // Handle unique constraint violation on short_code
+            throw new ShortCodeAlreadyExistsException(
+                    urlDTO.getShortCode() != null ? urlDTO.getShortCode() : "generated");
+        }
     }
 
     @Override
@@ -96,7 +114,7 @@ public class UrlServiceImpl implements UrlService {
         log.debug("Retrieving URL with ID: {} for user: {}", id, userId);
 
         Url url = urlRepository.findById(id)
-                          .orElseThrow(() -> new ResourceNotFoundException("URL", id.toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("URL", id.toString()));
         checkOwnership(url, userId);
         return urlMapper.toDTO(url);
     }
@@ -107,9 +125,9 @@ public class UrlServiceImpl implements UrlService {
     public List<UrlDTO> getUrlsByUser(UUID userId) {
         log.debug("Retrieving all URLs for user: {}", userId);
         return urlRepository.findByUserId(userId)
-                       .stream()
-                       .map(urlMapper::toDTO)
-                       .toList();
+                .stream()
+                .map(urlMapper::toDTO)
+                .toList();
     }
 
     /**
@@ -121,14 +139,11 @@ public class UrlServiceImpl implements UrlService {
      * @return Updated URL DTO
      */
     @Override
-    @Caching(
-            put = {
-                    @CachePut(value = CacheConstants.URL_CACHE, key = "#id")
-            },
-            evict = {
-                    @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
-            }
-    )
+    @Caching(put = {
+            @CachePut(value = CacheConstants.URL_CACHE, key = "#id")
+    }, evict = {
+            @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
+    })
     public UrlDTO updateUrlStatusById(Long id, UUID userId, UrlStatus newStatus) {
         log.info("Updating status for URL with ID: {} to {} for user: {}", id, newStatus, userId);
 
@@ -140,7 +155,7 @@ public class UrlServiceImpl implements UrlService {
         log.debug("Database update completed for URL ID: {}", id);
 
         Url refreshedUrl = urlRepository.findById(id)
-                                   .orElseThrow(() -> new ResourceNotFoundException("URL", id.toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("URL", id.toString()));
         UrlDTO updatedUrlDTO = cacheUrl(refreshedUrl);
 
         log.info("Successfully updated URL status - ID: {}, New Status: {}, ShortCode: {}",
@@ -149,9 +164,9 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
-    @Caching(evict={
-            @CacheEvict(value=CacheConstants.URL_CACHE,key="#id"),
-            @CacheEvict(value=CacheConstants.USER_URL_LIST_CACHE,key="#userId",condition="#userId!=null")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.URL_CACHE, key = "#id"),
+            @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId!=null")
     })
     public void deleteUrlById(Long id, UUID userId) {
         log.info("Deleting URL with ID: {} for user: {}", id, userId);
@@ -174,10 +189,12 @@ public class UrlServiceImpl implements UrlService {
         log.debug("Invalidated URL cache for ID: {} and short code: {}", id, shortCode);
     }
 
+    // TODO: verify if using cachemanager is correct practice
+    // TODO: when url not active, throw correct exception and message
     @Override
     public String getAndIncrementClicks(String shortCode) {
         Url url = urlRepository.findByShortCodeAndStatus(shortCode, UrlStatus.ACTIVE)
-                          .orElseThrow(() -> new ResourceNotFoundException("URL is not active", shortCode));
+                .orElseThrow(() -> new ResourceNotFoundException("URL is not active", shortCode));
 
         // increment in DB
         urlRepository.incrementClicksById(url.getId());
@@ -185,8 +202,7 @@ public class UrlServiceImpl implements UrlService {
         // update caches
         UrlDTO freshDTO = urlMapper.toDTO(
                 urlRepository.findById(url.getId())
-                        .orElseThrow(() -> new ResourceNotFoundException("URL", url.getId().toString()))
-        );
+                        .orElseThrow(() -> new ResourceNotFoundException("URL", url.getId().toString())));
         // refresh both caches
         cacheManager.getCache(CacheConstants.URL_CACHE).put(freshDTO.getId(), freshDTO);
         cacheManager.getCache(CacheConstants.SHORT_CODE_MAPPING_CACHE)
@@ -196,7 +212,6 @@ public class UrlServiceImpl implements UrlService {
 
         return freshDTO.getOriginalUrl();
     }
-
 
     /**
      * Update the URL cache with the latest entity state.

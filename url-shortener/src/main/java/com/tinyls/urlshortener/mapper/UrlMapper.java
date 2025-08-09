@@ -39,7 +39,8 @@ public interface UrlMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "clicks", ignore = true)
     @Mapping(target = "user", ignore = true)
-    @Mapping(target = "shortCode", ignore = true)
+    // allow incoming shortCode to be mapped when provided
+    @Mapping(target = "shortCode", source = "shortCode")
     @Mapping(target = "status", ignore = true)
     Url toEntity(UrlDTO urlDTO);
 

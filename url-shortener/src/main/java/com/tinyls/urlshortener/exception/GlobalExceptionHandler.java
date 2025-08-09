@@ -143,6 +143,32 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         }
 
         /**
+         * Map invalid custom short code errors to 400.
+         */
+        @ExceptionHandler({ InvalidShortCodeException.class, IllegalArgumentException.class })
+        public ResponseEntity<Object> handleInvalidShortCode(Exception ex) {
+                ApiError apiError = ApiError.builder()
+                                .status(HttpStatus.BAD_REQUEST.value())
+                                .message("Invalid short code")
+                                .debugMessage(ex.getMessage())
+                                .build();
+                return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+        }
+
+        /**
+         * Map short code conflict to 409.
+         */
+        @ExceptionHandler({ ShortCodeAlreadyExistsException.class })
+        public ResponseEntity<Object> handleShortCodeConflict(RuntimeException ex) {
+                ApiError apiError = ApiError.builder()
+                                .status(HttpStatus.CONFLICT.value())
+                                .message(ex.getMessage())
+                                .debugMessage("Short code conflict")
+                                .build();
+                return new ResponseEntity<>(apiError, HttpStatus.CONFLICT);
+        }
+
+        /**
          * Handles password validation exceptions.
          * These occur when a password fails to meet strength requirements.
          */

@@ -95,8 +95,10 @@ public class Url {
          */
         @PrePersist
         public void onPrePersist(Url url) {
-            // id is non-null here
-            url.setShortCode(Base62.encode(url.getId()));
+            // Only auto-generate when not provided
+            if (url.getShortCode() == null || url.getShortCode().isBlank()) {
+                url.setShortCode(Base62.encode(url.getId()));
+            }
         }
     }
 }
