@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -42,9 +43,10 @@ public class RedisConfig {
         GenericJackson2JsonRedisSerializer jsonSerializer = createJsonSerializer();
 
         // register JavaTimeModule so dates still work
-//        ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
-//
-//        jsonSerializer.setObjectMapper(mapper);
+        // ObjectMapper mapper = new ObjectMapper().registerModule(new
+        // JavaTimeModule());
+        //
+        // jsonSerializer.setObjectMapper(mapper);
 
         // Key serializer
         template.setKeySerializer(stringSerializer);
@@ -65,23 +67,25 @@ public class RedisConfig {
      * @return Configured cache manager
      */
     @Bean
+    @Primary
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         GenericJackson2JsonRedisSerializer jsonSer = createJsonSerializer();
 
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofHours(1)) // Default TTL of 1 hour
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
-                                           .fromSerializer(new StringRedisSerializer()))
+                        .fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
-                                             .fromSerializer(jsonSer))
+                        .fromSerializer(jsonSer))
                 .disableCachingNullValues();
 
         JdkSerializationRedisSerializer jdkSer = new JdkSerializationRedisSerializer();
         RedisCacheConfiguration listConfig = RedisCacheConfiguration.defaultCacheConfig()
-                                                     .entryTtl(Duration.ofHours(1))
-                                                     .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                                                     .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jdkSer))
-                                                     .disableCachingNullValues();
+                .entryTtl(Duration.ofHours(1))
+                .serializeKeysWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jdkSer))
+                .disableCachingNullValues();
 
         Map<String, RedisCacheConfiguration> configs = new HashMap<>();
         configs.put(CacheConstants.USER_URL_LIST_CACHE, listConfig);

@@ -60,6 +60,26 @@ This document describes all the environment variables used in the tinyls project
 - `REDIS_PORT`: Redis server port
 - `REDIS_PASSWORD`: Redis password (optional)
 
+### Feature Flags Configuration
+
+- `FEATURES_REDIRECT_CACHE`: Enable enhanced redirect caching (default: true, already implemented)
+- `FEATURES_PASSWORD_LINKS`: Enable password-protected URL links (default: false)
+- `FEATURES_ADVANCED_ANALYTICS`: Enable advanced analytics features (default: false)
+- `FEATURES_URL_EXPIRATION`: Enable URL expiration functionality (default: false)
+- `FEATURES_CUSTOM_DOMAINS`: Enable custom domain support (default: false)
+- `FEATURES_BULK_OPERATIONS`: Enable bulk URL operations (default: false)
+- `FEATURES_URL_PREVIEW`: Enable URL preview functionality (default: false)
+- `FEATURES_USER_RATE_LIMITING`: Enable user-specific rate limiting (default: false)
+- `FEATURES_URL_CATEGORIZATION`: Enable URL categorization (default: false)
+- `FEATURES_SOCIAL_MEDIA_INTEGRATION`: Enable social media integration (default: false)
+- `FEATURES_URL_HEALTH_MONITORING`: Enable URL health monitoring (default: false)
+- `FEATURES_ADVANCED_SECURITY`: Enable advanced security features (default: false)
+- `FEATURES_API_RATE_LIMITING`: Enable API rate limiting (default: false)
+- `FEATURES_DETAILED_CLICK_TRACKING`: Enable detailed click tracking (default: false)
+- `FEATURES_URL_BACKUP_RESTORE`: Enable URL backup/restore (default: false)
+- `FEATURES_CUSTOM_SHARE_MESSAGES`: Enable custom share messages (default: false)
+- `FEATURES_PERFORMANCE_OPTIMIZATION`: Enable performance optimizations (default: false)
+
 ## Frontend
 
 ### API Configuration
