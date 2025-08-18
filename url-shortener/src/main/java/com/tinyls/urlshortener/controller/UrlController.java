@@ -1,10 +1,11 @@
 package com.tinyls.urlshortener.controller;
 
 import com.tinyls.urlshortener.dto.url.UrlDTO;
-import com.tinyls.urlshortener.exception.UnauthorizedException;
 import com.tinyls.urlshortener.model.UrlStatus;
 import com.tinyls.urlshortener.security.UserDetailsAdapter;
 import com.tinyls.urlshortener.service.UrlService;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/urls")
 @RequiredArgsConstructor
+@Tag(name = "URLs", description = "URL shortening operations")
 public class UrlController {
     private final UrlService urlService;
 
@@ -85,13 +87,9 @@ public class UrlController {
     public ResponseEntity<UrlDTO> getUrlById(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
-            log.debug("Retrieving URL with ID: {} for user: {}", id, userId);
-            return ResponseEntity.ok(urlService.getUrlById(id, userId));
-        } catch (UnauthorizedException e) {
-            throw new AccessDeniedException(e.getMessage());
-        }
+        UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
+        log.debug("Retrieving URL with ID: {} for user: {}", id, userId);
+        return ResponseEntity.ok(urlService.getUrlById(id, userId));
     }
 
     /**
@@ -108,14 +106,10 @@ public class UrlController {
     public ResponseEntity<Void> deleteUrlById(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
-            log.info("Deleting URL with ID: {} for user: {}", id, userId);
-            urlService.deleteUrlById(id, userId);
-            return ResponseEntity.noContent().build();
-        } catch (UnauthorizedException e) {
-            throw new AccessDeniedException(e.getMessage());
-        }
+        UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
+        log.info("Deleting URL with ID: {} for user: {}", id, userId);
+        urlService.deleteUrlById(id, userId);
+        return ResponseEntity.noContent().build();
     }
 
     /**

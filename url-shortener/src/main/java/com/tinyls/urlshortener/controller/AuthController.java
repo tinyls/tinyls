@@ -8,6 +8,8 @@ import com.tinyls.urlshortener.security.UserDetailsAdapter;
 import com.tinyls.urlshortener.security.jwt.JwtTokenProvider;
 import com.tinyls.urlshortener.service.AuthService;
 import com.tinyls.urlshortener.service.UserService;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -16,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,7 +28,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
-// TODO: authentication protection and proper exception handling have to be implemented for returning correct status codes
 /**
  * Controller handling authentication-related operations including user
  * registration,
@@ -36,6 +39,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Authentication", description = "Authentication-related operations")
 public class AuthController {
 
     private final AuthService authService;
@@ -50,9 +54,14 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
-        log.info("Registering new user with email: {}", request.email());
-        authService.registerUser(request.email(), request.password(), request.name());
-        return ResponseEntity.ok(Map.of("message", "User registered successfully"));
+        try {
+            log.info("Registering new user with email: {}", request.email());
+            authService.registerUser(request.email(), request.password(), request.name());
+            return ResponseEntity.ok(Map.of("message", "User registered successfully"));
+        } catch (Exception e) {
+            log.error("Error registering user with email: {}", request.email(), e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
     }
 
     /**
@@ -63,10 +72,15 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest request) {
-        log.info("Authenticating user with email: {}", request.email());
-        Authentication authentication = authService.authenticateUser(request.email(), request.password());
-        String jwt = tokenProvider.generateToken(authentication);
-        return ResponseEntity.ok(Map.of("token", jwt));
+        try {
+            log.info("Authenticating user with email: {}", request.email());
+            Authentication authentication = authService.authenticateUser(request.email(), request.password());
+            String jwt = tokenProvider.generateToken(authentication);
+            return ResponseEntity.ok(Map.of("token", jwt));
+        } catch (Exception e) {
+            log.error("Error authenticating user with email: {}", request.email(), e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
     }
 
     /**
@@ -74,14 +88,19 @@ public class AuthController {
      * 
      * @param userDetails The authenticated user's details
      * @return The user's details
-     * @throws AuthenticationException if the user is not authenticated
+     * @throws AccessDeniedException if the user is not authenticated
      */
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponseDTO> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
-        validateUserDetails(userDetails);
-        UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
-        log.debug("Retrieving details for user: {}", userId);
-        return ResponseEntity.ok(userService.getUserById(userId));
+        try {
+            UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
+            log.debug("Retrieving details for user: {}", userId);
+            return ResponseEntity.ok(userService.getUserById(userId));
+        } catch (Exception e) {
+            log.error("Error retrieving details for user: {}", userDetails.getUsername(), e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
     }
 
     /**
@@ -92,8 +111,13 @@ public class AuthController {
      */
     @GetMapping("/oauth2/success")
     public ResponseEntity<?> oauth2Success(@RequestParam String token) {
-        log.debug("OAuth2 authentication successful");
-        return ResponseEntity.ok(Map.of("token", token));
+        try {
+            log.debug("OAuth2 authentication successful");
+            return ResponseEntity.ok(Map.of("token", token));
+        } catch (Exception e) {
+            log.error("Error in OAuth2 success callback", e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
     }
 
     /**
@@ -102,17 +126,22 @@ public class AuthController {
      * @param userDetails The authenticated user's details
      * @param passwordDTO The password update request
      * @return The updated user details
-     * @throws AuthenticationException    if the user is not authenticated
+     * @throws AccessDeniedException      if the user is not authenticated
      * @throws IncorrectPasswordException if the current password is incorrect
      */
     @PutMapping("/password")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponseDTO> updatePassword(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody PasswordUpdateDTO passwordDTO) {
-        validateUserDetails(userDetails);
-        UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
-        log.info("Updating password for user: {}", userId);
-        return ResponseEntity.ok(userService.updatePassword(userId, passwordDTO));
+        try {
+            UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
+            log.info("Updating password for user: {}", userId);
+            return ResponseEntity.ok(userService.updatePassword(userId, passwordDTO));
+        } catch (Exception e) {
+            log.error("Error updating password for user: {}", userDetails.getUsername(), e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
     }
 
     /**

@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 
 import java.util.Arrays;
@@ -108,17 +109,26 @@ public class SecurityConfig {
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
-                                                                "/api/auth/**", // Authentication endpoints
+                                                                "/api/auth/register", // Public registration
+                                                                "/api/auth/login", // Public login
+                                                                "/api/auth/oauth2/success", // Public OAuth2 callback
                                                                 "/oauth2/**", // OAuth2 endpoints
                                                                 "/login/oauth2/**", // OAuth2 callback
-                                                                "/api/urls/**", // URL endpoints
-                                                                "/api/urls/r/**", // URL redirection
+                                                                "/api/urls/r/**", // Public URL redirection only
                                                                 "/api-docs/**", // API documentation
                                                                 "/swagger-ui/**", // Swagger UI
                                                                 "/swagger-ui.html", // Swagger UI entry point
                                                                 "/actuator/**", // Actuator endpoints
                                                                 "/actuator/health/**" // Health check endpoints
                                                 ).permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/urls/").permitAll() // Allow
+                                                                                                            // anonymous
+                                                // users to create
+                                                // shortcodes
+                                                .requestMatchers("/api/urls/**").authenticated() // Require
+                                                                                                 // authentication for
+                                                                                                 // all other URL
+                                                                                                 // operations
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
                                                 .authorizationEndpoint(authorization -> authorization
@@ -134,11 +144,12 @@ public class SecurityConfig {
                                                         response.setStatus(HttpStatus.UNAUTHORIZED.value());
                                                         response.setContentType("application/json");
                                                         response.getWriter().write(
-                                                                        "{\"status\":\"UNAUTHORIZED\",\"code\":\"UNAUTHORIZED\","
-                                                                                        +
-                                                                                        "\"message\":\"Authentication required\","
-                                                                                        +
-                                                                                        "\"debugMessage\":\"No authentication token provided\"}");
+                                                                        "{\"timestamp\":\"" + java.time.Instant.now()
+                                                                                        + "\","
+                                                                                        + "\"status\":401,"
+                                                                                        + "\"message\":\"Authentication required\","
+                                                                                        + "\"debugMessage\":\"No authentication token provided\","
+                                                                                        + "\"subErrors\":[]}");
                                                 }))
                                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 

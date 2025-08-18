@@ -61,9 +61,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                // Clear any existing authentication context if no valid token
+                SecurityContextHolder.clearContext();
             }
         } catch (Exception ex) {
             logger.error("Could not set user authentication in security context", ex);
+            // Clear authentication context on error
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
