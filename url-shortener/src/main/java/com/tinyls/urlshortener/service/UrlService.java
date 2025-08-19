@@ -75,4 +75,28 @@ public interface UrlService {
      *                                                                 not the owner
      */
     UrlDTO updateUrlStatusById(Long id, UUID userId, UrlStatus newStatus);
+
+    /**
+     * Update URL details by ID.
+     * Only the owner can perform this action.
+     * 
+     * This method is designed to be extensible for future URL fields.
+     * Currently supports updating:
+     * - originalUrl: The target URL to redirect to
+     * - status: The status of the URL (ACTIVE, INACTIVE)
+     * 
+     * Only provided fields will be updated; omitted fields will retain their
+     * current values.
+     * Future fields like customTitle, description, tags, etc. can be easily added.
+     *
+     * @param id            URL ID
+     * @param userId        ID of the user updating the URL
+     * @param updateRequest The update request containing new values
+     * @return updated URL data
+     * @throws jakarta.persistence.EntityNotFoundException             if URL not
+     *                                                                 found
+     * @throws com.tinyls.urlshortener.exception.UnauthorizedException if user is
+     *                                                                 not the owner
+     */
+    UrlDTO updateUrlById(Long id, UUID userId, com.tinyls.urlshortener.dto.url.UrlUpdateRequest updateRequest);
 }

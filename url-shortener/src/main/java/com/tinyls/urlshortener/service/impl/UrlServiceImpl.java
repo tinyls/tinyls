@@ -131,36 +131,88 @@ public class UrlServiceImpl implements UrlService {
     }
 
     /**
-     * Update URL status by ID.
+     * Update the status of a URL (ACTIVE <-> INACTIVE) by ID.
+     * Only the owner can perform this action.
      *
      * @param id        URL ID
-     * @param userId    User ID
-     * @param newStatus New status
-     * @return Updated URL DTO
+     * @param userId    ID of the user updating the status
+     * @param newStatus The new status to set
+     * @return updated URL data
+     * @throws ResourceNotFoundException if URL not found
+     * @throws UnauthorizedException     if user is not the owner
      */
     @Override
-    @Caching(put = {
-            @CachePut(value = CacheConstants.URL_CACHE, key = "#id")
-    }, evict = {
-            @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
-    })
+    @CachePut(value = CacheConstants.URL_CACHE, key = "#id")
+    @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
     public UrlDTO updateUrlStatusById(Long id, UUID userId, UrlStatus newStatus) {
-        log.info("Updating status for URL with ID: {} to {} for user: {}", id, newStatus, userId);
-
-        // Check ownership BEFORE making any changes to ensure security
+        log.info("Updating URL status to {} for URL ID: {} by user: {}", newStatus, id, userId);
         Url url = getUrlByIdAndCheckOwnership(id, userId);
-        log.debug("Ownership verified for URL ID: {} - user: {}", id, userId);
+        url.setStatus(newStatus);
+        Url savedUrl = urlRepository.save(url);
+        return urlMapper.toDTO(savedUrl);
+    }
 
-        urlRepository.updateStatusById(id, newStatus);
-        log.debug("Database update completed for URL ID: {}", id);
+    /**
+     * Update URL details by ID.
+     * Only the owner can perform this action.
+     * 
+     * This method is designed to be extensible for future URL fields.
+     * Currently supports updating:
+     * - originalUrl: The target URL to redirect to
+     * - status: The status of the URL (ACTIVE, INACTIVE)
+     * 
+     * Only provided fields will be updated; omitted fields will retain their
+     * current values.
+     * Future fields like customTitle, description, tags, etc. can be easily added.
+     *
+     * @param id            URL ID
+     * @param userId        ID of the user updating the URL
+     * @param updateRequest The update request containing new values
+     * @return updated URL data
+     * @throws ResourceNotFoundException if URL not found
+     * @throws UnauthorizedException     if user is not the owner
+     */
+    @Override
+    @CachePut(value = CacheConstants.URL_CACHE, key = "#id")
+    @CacheEvict(value = CacheConstants.USER_URL_LIST_CACHE, key = "#userId", condition = "#userId != null")
+    public UrlDTO updateUrlById(Long id, UUID userId, com.tinyls.urlshortener.dto.url.UrlUpdateRequest updateRequest) {
+        log.info("Updating URL details for URL ID: {} by user: {}", id, userId);
 
-        Url refreshedUrl = urlRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("URL", id.toString()));
-        UrlDTO updatedUrlDTO = cacheUrl(refreshedUrl);
+        Url url = getUrlByIdAndCheckOwnership(id, userId);
 
-        log.info("Successfully updated URL status - ID: {}, New Status: {}, ShortCode: {}",
-                id, newStatus, refreshedUrl.getShortCode());
-        return updatedUrlDTO;
+        // Update originalUrl if provided
+        if (updateRequest.getOriginalUrl() != null) {
+            url.setOriginalUrl(updateRequest.getOriginalUrl());
+            log.debug("Updated originalUrl for URL ID: {}", id);
+        }
+
+        // Update status if provided
+        if (updateRequest.getStatus() != null) {
+            url.setStatus(updateRequest.getStatus());
+            log.debug("Updated status to {} for URL ID: {}", updateRequest.getStatus(), id);
+        }
+
+        // Future extensible fields can be updated here:
+        // if (updateRequest.getCustomTitle() != null) {
+        // url.setCustomTitle(updateRequest.getCustomTitle());
+        // log.debug("Updated customTitle for URL ID: {}", id);
+        // }
+        // if (updateRequest.getDescription() != null) {
+        // url.setDescription(updateRequest.getDescription());
+        // log.debug("Updated description for URL ID: {}", id);
+        // }
+        // if (updateRequest.getTags() != null) {
+        // url.setTags(updateRequest.getTags());
+        // log.debug("Updated tags for URL ID: {}", id);
+        // }
+        // if (updateRequest.getExpirationDate() != null) {
+        // url.setExpirationDate(updateRequest.getExpirationDate());
+        // log.debug("Updated expirationDate for URL ID: {}", id);
+        // }
+        // etc.
+
+        Url savedUrl = urlRepository.save(url);
+        return urlMapper.toDTO(savedUrl);
     }
 
     @Override

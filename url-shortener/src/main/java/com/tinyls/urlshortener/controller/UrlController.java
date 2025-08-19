@@ -1,6 +1,7 @@
 package com.tinyls.urlshortener.controller;
 
 import com.tinyls.urlshortener.dto.url.UrlDTO;
+import com.tinyls.urlshortener.dto.url.UrlUpdateRequest;
 import com.tinyls.urlshortener.model.UrlStatus;
 import com.tinyls.urlshortener.security.UserDetailsAdapter;
 import com.tinyls.urlshortener.service.UrlService;
@@ -146,6 +147,36 @@ public class UrlController {
         UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
         UrlStatus newStatus = statusBody.getStatus();
         return ResponseEntity.ok(urlService.updateUrlStatusById(id, userId, newStatus));
+    }
+
+    /**
+     * Updates URL details by ID.
+     * Only the owner can perform this action.
+     * 
+     * This endpoint is designed to be extensible for future URL fields.
+     * Currently supports updating:
+     * - originalUrl: The target URL to redirect to
+     * - status: The status of the URL (ACTIVE, INACTIVE)
+     * 
+     * Only provided fields will be updated; omitted fields will retain their
+     * current values.
+     * Future fields like customTitle, description, tags, etc. can be easily added.
+     *
+     * @param id            The ID of the URL to update
+     * @param updateRequest The update request containing new values
+     * @param userDetails   The authenticated user's details
+     * @return The updated URL details
+     * @throws AccessDeniedException if the user is not authorized to update the URL
+     */
+    @PutMapping("/id/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UrlDTO> updateUrlById(
+            @PathVariable Long id,
+            @Valid @RequestBody UrlUpdateRequest updateRequest,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UUID userId = ((UserDetailsAdapter) userDetails).getUserId();
+        log.info("Updating URL with ID: {} for user: {}", id, userId);
+        return ResponseEntity.ok(urlService.updateUrlById(id, userId, updateRequest));
     }
 
     /**
