@@ -157,10 +157,12 @@ public class UrlController {
      * Currently supports updating:
      * - originalUrl: The target URL to redirect to
      * - status: The status of the URL (ACTIVE, INACTIVE)
+     * - title: The title of the URL
+     * - description: The description of the URL
      * 
      * Only provided fields will be updated; omitted fields will retain their
      * current values.
-     * Future fields like customTitle, description, tags, etc. can be easily added.
+     * Future fields like tags, expirationDate, etc. can be easily added.
      *
      * @param id            The ID of the URL to update
      * @param updateRequest The update request containing new values

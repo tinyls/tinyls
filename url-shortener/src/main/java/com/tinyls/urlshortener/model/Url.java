@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import com.tinyls.urlshortener.util.Base62;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -64,12 +65,34 @@ public class Url {
     private Timestamp createdAt;
 
     /**
+     * The timestamp when the URL was last updated.
+     * Automatically set when the URL is updated.
+     */
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private Timestamp updatedAt;
+
+    /**
      * The number of times the URL has been accessed.
      * Initialized to 0 and incremented on each access.
      */
     @Builder.Default
     @Column(nullable = false)
     private Long clicks = 0L; // Default to 0
+
+    /**
+     * The title of the URL.
+     * Can be null.
+     */
+    @Column(nullable = true, length = 30)
+    private String title;
+
+    /**
+     * The description of the URL.
+     * Can be null.
+     */
+    @Column(nullable = true, length = 255)
+    private String description;
 
     /**
      * The user who created this URL.

@@ -58,9 +58,30 @@ public class UrlDTO implements Serializable {
         private Timestamp createdAt;
 
         /**
+         * The timestamp when the URL was last updated.
+         */
+        private Timestamp updatedAt;
+
+        /**
          * The number of times the URL has been accessed.
          */
         private Long clicks;
+
+        /**
+         * The title of the URL.
+         * Optional field for better URL identification.
+         */
+        @Size(max = 30, message = "Title must not exceed 30 characters", groups = { ValidationGroups.Create.class,
+                        ValidationGroups.Update.class })
+        private String title;
+
+        /**
+         * The description of the URL.
+         * Optional field for additional context about the URL.
+         */
+        @Size(max = 255, message = "Description must not exceed 255 characters", groups = {
+                        ValidationGroups.Create.class, ValidationGroups.Update.class })
+        private String description;
 
         /**
          * The ID of the user who created the URL.

@@ -13,6 +13,7 @@ import com.tinyls.urlshortener.repository.UrlRepository;
 import com.tinyls.urlshortener.repository.UserRepository;
 import com.tinyls.urlshortener.service.CacheService;
 import com.tinyls.urlshortener.service.UrlService;
+import com.tinyls.urlshortener.service.UrlTitleExtractionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,6 +48,7 @@ public class UrlServiceImpl implements UrlService {
     private final UrlMapper urlMapper;
     private final CacheService cacheService;
     private final CacheManager cacheManager;
+    private final UrlTitleExtractionService urlTitleExtractionService;
 
     @Override
     @Caching(put = {
@@ -99,6 +101,39 @@ public class UrlServiceImpl implements UrlService {
 
         try {
             Url savedUrl = urlRepository.saveAndFlush(url);
+
+            // Extract title asynchronously if not provided and title extraction is enabled
+            if ((urlDTO.getTitle() == null || urlDTO.getTitle().isBlank()) &&
+                    urlTitleExtractionService.isTitleExtractionEnabled()) {
+
+                log.debug("Initiating async title extraction for URL: {}", urlDTO.getOriginalUrl());
+                urlTitleExtractionService.extractTitleAsync(urlDTO.getOriginalUrl())
+                        .thenAccept(extractedTitle -> {
+                            if (extractedTitle != null && !extractedTitle.isBlank()) {
+                                try {
+                                    // Update the URL with the extracted title
+                                    savedUrl.setTitle(extractedTitle);
+                                    urlRepository.save(savedUrl);
+
+                                    // Update cache with the new title
+                                    cacheManager.getCache(CacheConstants.URL_CACHE).put(savedUrl.getId(),
+                                            urlMapper.toDTO(savedUrl));
+
+                                    log.info("Successfully extracted and saved title '{}' for URL ID: {}",
+                                            extractedTitle, savedUrl.getId());
+                                } catch (Exception e) {
+                                    log.warn("Failed to save extracted title '{}' for URL ID: {}: {}", extractedTitle,
+                                            savedUrl.getId(), e.getMessage());
+                                }
+                            }
+                        })
+                        .exceptionally(throwable -> {
+                            log.debug("Title extraction failed for URL ID: {}: {}", savedUrl.getId(),
+                                    throwable.getMessage());
+                            return null;
+                        });
+            }
+
             return urlMapper.toDTO(savedUrl);
         } catch (DataIntegrityViolationException ex) {
             // Handle unique constraint violation on short_code
@@ -160,10 +195,12 @@ public class UrlServiceImpl implements UrlService {
      * Currently supports updating:
      * - originalUrl: The target URL to redirect to
      * - status: The status of the URL (ACTIVE, INACTIVE)
+     * - title: The title of the URL
+     * - description: The description of the URL
      * 
      * Only provided fields will be updated; omitted fields will retain their
      * current values.
-     * Future fields like customTitle, description, tags, etc. can be easily added.
+     * Future fields like tags, expirationDate, etc. can be easily added.
      *
      * @param id            URL ID
      * @param userId        ID of the user updating the URL
@@ -192,15 +229,19 @@ public class UrlServiceImpl implements UrlService {
             log.debug("Updated status to {} for URL ID: {}", updateRequest.getStatus(), id);
         }
 
+        // Update title if provided
+        if (updateRequest.getTitle() != null) {
+            url.setTitle(updateRequest.getTitle());
+            log.debug("Updated title for URL ID: {}", id);
+        }
+
+        // Update description if provided
+        if (updateRequest.getDescription() != null) {
+            url.setDescription(updateRequest.getDescription());
+            log.debug("Updated description for URL ID: {}", id);
+        }
+
         // Future extensible fields can be updated here:
-        // if (updateRequest.getCustomTitle() != null) {
-        // url.setCustomTitle(updateRequest.getCustomTitle());
-        // log.debug("Updated customTitle for URL ID: {}", id);
-        // }
-        // if (updateRequest.getDescription() != null) {
-        // url.setDescription(updateRequest.getDescription());
-        // log.debug("Updated description for URL ID: {}", id);
-        // }
         // if (updateRequest.getTags() != null) {
         // url.setTags(updateRequest.getTags());
         // log.debug("Updated tags for URL ID: {}", id);
@@ -208,6 +249,14 @@ public class UrlServiceImpl implements UrlService {
         // if (updateRequest.getExpirationDate() != null) {
         // url.setExpirationDate(updateRequest.getExpirationDate());
         // log.debug("Updated expirationDate for URL ID: {}", id);
+        // }
+        // if (updateRequest.getPasswordProtection() != null) {
+        // url.setPasswordProtection(updateRequest.getPasswordProtection());
+        // log.debug("Updated passwordProtection for URL ID: {}", id);
+        // }
+        // if (updateRequest.getAnalyticsPreferences() != null) {
+        // url.setAnalyticsPreferences(updateRequest.getAnalyticsPreferences());
+        // log.debug("Updated analyticsPreferences for URL ID: {}", id);
         // }
         // etc.
 

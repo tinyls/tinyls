@@ -20,10 +20,10 @@ import java.io.Serializable;
  * Current updatable fields:
  * - originalUrl: The target URL to redirect to
  * - status: The status of the URL (ACTIVE, INACTIVE)
+ * - title: The title of the URL
+ * - description: The description of the URL
  * 
  * Future extensible fields can be added here:
- * - customTitle: Custom title for the URL
- * - description: Description of the URL
  * - tags: Tags for categorization
  * - expirationDate: When the URL should expire
  * - passwordProtection: Password protection settings
@@ -53,9 +53,21 @@ public class UrlUpdateRequest implements Serializable {
      */
     private UrlStatus status;
 
+    /**
+     * The title of the URL.
+     * Optional - if not provided, the existing value will be kept.
+     */
+    @Size(max = 30, message = "Title must not exceed 30 characters", groups = { ValidationGroups.Update.class })
+    private String title;
+
+    /**
+     * The description of the URL.
+     * Optional - if not provided, the existing value will be kept.
+     */
+    @Size(max = 255, message = "Description must not exceed 255 characters", groups = { ValidationGroups.Update.class })
+    private String description;
+
     // Future extensible fields can be added here:
-    // private String customTitle;
-    // private String description;
     // private List<String> tags;
     // private LocalDateTime expirationDate;
     // private String passwordProtection;
