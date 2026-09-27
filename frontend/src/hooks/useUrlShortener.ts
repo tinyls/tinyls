@@ -2,7 +2,7 @@ import {
   useCreateUrl,
   useDeleteUrlById,
   useGetUrlsByUser,
-} from "@/api/client/url-controller/url-controller";
+} from "@/api/client/urls/urls";
 
 import type { HTTPValidationError } from "@/api/schemas/apiError";
 import type { UrlDTO } from "@/api/schemas";

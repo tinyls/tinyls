@@ -9,8 +9,8 @@ import { API_URL } from "@/lib/config"
 import type { HTTPValidationError } from "@/api/schemas/apiError"
 import { toast } from "sonner"
 import { useAuthStore } from "@/store/auth"
-import { useAuthenticateUser } from "@/api/client/auth-controller/auth-controller"
-import { useRegisterUser } from "@/api/client/auth-controller/auth-controller"
+import { useAuthenticateUser } from "@/api/client/authentication/authentication"
+import { useRegisterUser } from "@/api/client/authentication/authentication"
 
 // Helper function to open OAuth popup with proper sizing and mobile detection
 function openOAuthPopup(provider: "google" | "github"): Window | null {
@@ -64,7 +64,7 @@ export function useLoginMutation(
 			mutationFn: async ({ data }: { data: LoginRequest }) => {
 				try {
 					const response: AuthenticateUser200 = await (
-						await import("@/api/client/auth-controller/auth-controller")
+						await import("@/api/client/authentication/authentication")
 					).authenticateUser(data)
 					// Assuming the response contains a token field
 					await login(response.token as string)
@@ -153,7 +153,7 @@ export function useRegisterMutation(onSuccess?: () => void) {
 			mutationFn: async ({ data }: { data: RegisterRequest }) => {
 				try {
 					const registeredUser = await (
-						await import("@/api/client/auth-controller/auth-controller")
+						await import("@/api/client/authentication/authentication")
 					).registerUser(data)
 					return registeredUser
 				} catch (err: any) {

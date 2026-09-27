@@ -79,6 +79,22 @@ docker compose logs -f
 - Swagger UI: http://localhost:8000/swagger-ui.html
 - Adminer (Database): http://localhost:8080
 
+### 5. Generate the API Client (Deterministic)
+
+This project uses **Orval** only. The generation script pulls the OpenAPI spec
+from the running backend and **clears old generated output** before regenerating.
+The `openapi-ts.config.ts` file is legacy and should not be used.
+
+```bash
+./scripts/generate-client-spring.sh
+```
+
+What it does:
+- Fetches `http://localhost:8000/api-docs` into `frontend/openapi.json`
+- Deletes `frontend/src/api/client` and `frontend/src/api/schemas`
+- Runs `npm run generate-api` (Orval)
+- Formats generated files with Biome
+
 ## Project Structure
 
 ```

@@ -1,6 +1,6 @@
 import type { UserResponseDTO } from "@/api/schemas";
 import { create } from "zustand";
-import { getCurrentUser } from "@/api/client/auth-controller/auth-controller";
+import { getCurrentUser } from "@/api/client/authentication/authentication";
 import { persist } from "zustand/middleware";
 
 interface AuthState {

@@ -1,11 +1,11 @@
 import {
   useDeleteAccount,
   useUpdateProfile,
-} from "@/api/client/user-controller/user-controller";
+} from "@/api/client/users/users";
 import {
   useGetCurrentUser,
   useUpdatePassword,
-} from "@/api/client/auth-controller/auth-controller";
+} from "@/api/client/authentication/authentication";
 
 import type { HTTPValidationError } from "@/api/schemas/apiError";
 import type { UserResponseDTO } from "@/api/schemas";

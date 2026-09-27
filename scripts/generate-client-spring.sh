@@ -7,8 +7,12 @@ set -x
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
+# Ensure we only use the Orval-generated client
+rm -rf frontend/src/api/client frontend/src/api/schemas
+
 # Download the OpenAPI spec from the running Spring Boot application
-curl -s http://localhost:8000/api-docs > "$TEMP_DIR/openapi.json"
+# -f ensures a non-zero exit on HTTP errors
+curl -sf http://localhost:8000/api-docs > "$TEMP_DIR/openapi.json"
 
 # Move the OpenAPI spec to the frontend directory
 mv "$TEMP_DIR/openapi.json" frontend/
